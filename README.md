@@ -17,20 +17,22 @@ I use Emacs Live with the following steps to prepare this project for hacking in
 
 ## Usage
 
-In this namespace, "data" is a blank sudoku data structure. To see a visual represenation of this data structure, write html to a file and open in any browser, like so:
+In this namespace, "data" is a blank sudoku data structure. To see a visual represenation of this data structure, write html to a file, per code below, and then open the resultant file in any browser:
 
 ```clojure
 (write_data "/absolute/path/works/best/data.html" data)
 ```
 
-The image at this link shows that every cell can have the possible values [1-9]: [Blank Puzzle Data Structure](images/puzzle1/data.png)
+The image at this link shows that every cell can have the possible values [1-9]:
+
+[Blank Puzzle Data Structure](images/puzzle1/data.png)
 
 
 ## Example Puzzle
 
 Given this puzzle: [Puzzle #1](images/puzzle1/puzzle1.png)
 
-Load the encoded puzzle1 into a data structure, and then write html to a file to view in the browser:
+Load the encoded puzzle1 into a data structure, and then write html to a file to view in a browser:
 
 ```clojure
 (def data2 (assign_values data puzzle1))
@@ -39,24 +41,26 @@ Load the encoded puzzle1 into a data structure, and then write html to a file to
 
 [Loaded Puzzle Data Structure](images/puzzle1/data2.png)
 
-Solving the puzzle involves incrementally simplifying the data structure using increasingly complex algorithms dependent on puzzle difficulty. The next step simplifies the puzzle by removing as many values as possible from the cells associated with any naked singles. For this puzzle, 2 iterations of the Naked Singles algorithm reduces the data to the point where a more complex algorithm is needed:
+Solving the puzzle involves incrementally simplifying the data structure using increasingly complex algorithms dependent on puzzle difficulty.
+
+The next step simplifies the puzzle by removing as many values as possible from the cells associated with any naked singles. For this puzzle, 2 iterations of the Naked Singles algorithm reduces the data to the point where a more complex algorithm is needed:
 
 ```clojure
 (def data3 (simplify_data 2 data2))
 (write_data "/absolute/path/works/best/data.html" data3)
 ```
 
-[Simplified Puzzle Data Structure](images/puzzle1/data3.png)
+[Simplified Puzzle Data Structure (2 Iterations)](images/puzzle1/data3.png)
 
 
-The puzzle state after 2 iterations of Naked Singles is blocked and necessitates the Hidden Singles algorithm:
+The puzzle state after 2 iterations of Naked Singles necessitates the Hidden Singles algorithm:
 
 ```clojure
 (def data4 (simplify_data 1 data3))
 (write_data "/absolute/path/works/best/data.html" data4)
 ```
 
-[Simplified Puzzle Data Structure](images/puzzle1/data4.png)
+[Simplified Puzzle Data Structure (3 Iterations)](images/puzzle1/data4.png)
 
 
 After running the Hidden Singles algorithm on the 3rd iteration, the remainder of the puzzle is solved using sucessive Naked Singles iterations:
@@ -67,7 +71,7 @@ After running the Hidden Singles algorithm on the 3rd iteration, the remainder o
 (data_is_solved data5)
 ```
 
-[Simplified Puzzle Data Structure](images/puzzle1/data5.png)
+[Solved Puzzle](images/puzzle1/data5.png)
 
 
 In the case of harder puzzles, additional inter and intra-group algorithms are needed to continue simplifying the problem space.
@@ -83,6 +87,7 @@ Inter-Group Algorithms to be encoded:
 Intra-Group Algorithms to be encoded:
 * X-Wing
 * Y-Wing
+* ...
 
 
 ## License
