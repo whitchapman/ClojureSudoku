@@ -44,9 +44,11 @@
 (def data
   {
    :grid grid
-   :ver vert_groups
-   :hor horz_groups
-   :sqr square_groups
+   :groups {
+            :ver vert_groups
+            :hor horz_groups
+            :sqr square_groups
+            }
    })
 
 ;-------------------------------------------------------------------------------
@@ -66,9 +68,7 @@
     "0"
     (if (cell_is_done c)
       (reduce str c)
-      (str "[" (reduce str c) "]")
-     ))
-  )
+      (str "[" (reduce str c) "]"))))
 
 ;-------------------------------------------------------------------------------
 ; grid functions
@@ -111,36 +111,123 @@
         (recur (inc i) (concat acc r)))
       acc)))
 
-(defn process_cells [cells]
-  (process_naked_singles cells))
+(defn compile_num_map [cells]
+  (loop [i 0 map {}]
+    (if (< i 9)
+      (let [cell (cells i)
+            map (loop [map map xs (vec cell)]
+                  (if (seq xs)
+                    (let [x (first xs)
+                          ys (conj (get map x []) i)
+                          map (assoc map x ys)]
+                      (recur map (next xs)))
+                    map))]
+        (recur (inc i) map))
+      map)))
 
-(defn simplify_group [grid group]
+(defn process_hidden_singles [cells]
+  (let [num_map (compile_num_map cells)]
+    (loop [i 1 acc []]
+      (if (<= i 9)
+        (let [xs (num_map i)]
+          (if  (= (count xs) 1)
+            (let [x (first xs)
+                  cell (cells x)
+                  acc (loop [acc acc nums cell]
+                        (if (seq nums)
+                          (let [num (first nums)
+                                acc (if (not= i num)
+                                      (concat acc [[x num]])
+                                      acc)]
+                            (recur acc (next nums)))
+                          acc))]
+              (recur (inc i) acc))
+            (recur (inc i) acc)))
+        acc))))
+
+(defn simplify_group [alg grid group]
   (let [group_keys (:cells group)
-        results (process_cells (get_group_cells grid group))
+        results (alg (get_group_cells grid group))
         updates (mapv (fn [i] (let [[x y] i] [(group_keys x) y])) results)]
     [(remove_grid_values grid updates) (> (count updates) 0)]))
 
-(defn simplify_groups [data]
-  (let [groups (concat (:ver data) (:hor data) (:sqr data))]
-    (loop [grid (:grid data) groups groups changed false]
-      (if (seq groups)
-        (let [group (first groups)
-              [grid group_changed] (simplify_group grid group)]
-          (recur grid (next groups) (or group_changed changed)))
-        [(assoc data :grid grid) changed]
+(defn simplify_groups
+  ([alg] (fn [data] (simplify_groups alg data)))
+  ([alg data]
+   (let [groups (:groups data)
+         gs (concat (:ver groups) (:hor groups) (:sqr groups))]
+     (loop [grid (:grid data)
+            gs gs
+            changed false]
+       (if (seq gs)
+         (let [group (first gs)
+               [grid group_changed] (simplify_group alg grid group)]
+           (recur grid (next gs) (or group_changed changed)))
+         [(assoc data :grid grid) changed])))))
+
+(def algorithms
+  {
+   :functions [
+               (simplify_groups process_naked_singles)
+               (simplify_groups process_hidden_singles)
+               ]
+   :descriptions [
+                  "Naked Singles"
+                  "Hidden Singles"
+                  ]
+   })
+
+(defn run_algs [data counter]
+  (loop [data data algcount 1]
+    (let [alg ((:functions algorithms) (- algcount 1))
+          [data changed] (alg data)]
+      (println (str "Run #" counter " Alg #" algcount " ("
+                    ((:descriptions algorithms) (- algcount 1)) ") changed=" changed))
+      (if (and (= changed false) (< algcount (count algorithms)))
+        (recur data (inc algcount))
+        [data changed]
         ))))
 
-(defn simplify_data [data]
+(defn data_is_solved [data]
+  (loop [cells (:grid data)]
+    (if (seq cells)
+      (let [cell (first cells)]
+        (if (cell_is_done cell)
+          (recur (next cells))
+          false))
+      true)))
+
+(defn simplify_data [max_num_runs data]
   (loop [data data counter 1]
-    (let [[data changed] (simplify_groups data)]
-      (println (str "Run #" counter " changed=" changed))
-      (if (and (< counter 10) (= changed true))
-        (recur data (inc counter))
-        data)
-      )))
+    (let [[data changed] (run_algs data counter)]
+      (if (and (< counter max_num_runs) (= changed true))
+        (if (data_is_solved data)
+          (do
+            (println "Solved!")
+            data)
+          (recur data (inc counter)))
+        data))))
 
 ;-------------------------------------------------------------------------------
 ; solution functions
+
+(defn assign_value [data x y val]
+  (let [pos (+ (* (- x 1) 9) (- y 1))]
+    (assoc data :grid (assign_grid_value (:grid data) pos val))))
+
+(defn assign_values [data vals]
+  (loop [d data vs vals]
+    (if (seq vs)
+      (let [[x y val] (first vs)
+            d (assign_value d x y val)]
+       (recur d (next vs)))
+      d)))
+
+(defn solve_data [data]
+  (simplify_data 100 data))
+
+(defn solve_puzzle [puzzle]
+  (solve_data (assign_values data puzzle)))
 
 (defn fake_solve_zero_fill [data]
   (let [grid
@@ -153,15 +240,6 @@
               (recur cells (inc counter)))
             cells))]
     (assoc data :grid grid)))
-
-(defn data_is_solved [data]
-  (loop [cells (:grid data)]
-    (if (seq cells)
-      (let [cell (first cells)]
-        (if (cell_is_done cell)
-          (recur (next cells))
-          false))
-      true)))
 
 ;-------------------------------------------------------------------------------
 ; print functions
@@ -179,10 +257,9 @@
               (wrap_done s)
               (if (cell_is_empty c)
                 (wrap_empty s)
-                (wrap_cell s)
-                ))))))))))
+                (wrap_cell s)))))))))))
 
-(defn grid_to_html [g]
+(defn grid_to_html [grid]
   (grid_to_string
    (fn [s] (str "<table border=\"1\" cellpadding=\"8\" cellspacing=\"0\">"
                s "</table>"))
@@ -190,7 +267,7 @@
    (fn [s] (str "<td align=\"center\"><font color=\"blue\">" s "</font></td>"))
    (fn [s] (str "<td align=\"center\">" s "</td>"))
    (fn [s] (str "<td align=\"center\"><font color=\"red\">" s "</font></td>"))
-   g))
+   grid))
 
 (defn writestr [file-path str]
   (with-open [wtr (clojure.java.io/writer file-path)]
@@ -204,19 +281,6 @@
 
 ;-------------------------------------------------------------------------------
 ; puzzles
-
-(defn assign_value [data x y val]
-  (let [pos (+ (* (- x 1) 9) (- y 1))]
-    (assoc data :grid (assign_grid_value (:grid data) pos val))))
-
-(defn assign_values [data vals]
-  (loop [d data vs vals]
-    (if (seq vs)
-      (let [[x y val] (first vs)
-            d (assign_value d x y val)]
-       (recur d (next vs)))
-      d)
-    ))
 
 (def puzzle1
   [

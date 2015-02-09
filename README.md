@@ -39,16 +39,50 @@ Load the encoded puzzle1 into a data structure, and then write html to a file to
 
 [Loaded Puzzle Data Structure](images/puzzle1/data2.png)
 
-The next step simplifies the puzzle by removing as many values as possible from the cells associated with any naked singles (this can take a couple of iterations through all the groups):
+Solving the puzzle involves incrementally simplifying the data structure using increasingly complex algorithms dependent on puzzle difficulty. The next step simplifies the puzzle by removing as many values as possible from the cells associated with any naked singles. For this puzzle, 2 iterations of the Naked Singles algorithm reduces the data to the point where a more complex algorithm is needed:
 
 ```clojure
-(def data3 (simplify_data data3))
+(def data3 (simplify_data 2 data2))
 (write_data "/absolute/path/works/best/data.html" data3)
 ```
 
 [Simplified Puzzle Data Structure](images/puzzle1/data3.png)
 
-At this point, additional algorithms like Hidden Singles, Doubles, Triples, etc..., are needed to continue simplifying the problem space.
+
+The puzzle state after 2 iterations of Naked Singles is blocked and necessitates the Hidden Singles algorithm:
+
+```clojure
+(def data4 (simplify_data 1 data3))
+(write_data "/absolute/path/works/best/data.html" data4)
+```
+
+[Simplified Puzzle Data Structure](images/puzzle1/data4.png)
+
+
+After running the Hidden Singles algorithm on the 3rd iteration, the remainder of the puzzle is solved using sucessive Naked Singles iterations:
+
+```clojure
+(def data5 (solve_puzzle puzzle1))
+(write_data "/absolute/path/works/best/data.html" data5)
+(data_is_solved data5)
+```
+
+[Simplified Puzzle Data Structure](images/puzzle1/data5.png)
+
+
+In the case of harder puzzles, additional inter and intra-group algorithms are needed to continue simplifying the problem space.
+
+Inter-Group Algorithms to be encoded:
+* Naked Doubles
+* Hidden Doubles
+* Naked Triples
+* Hidden Triples
+* Naked Quadruples
+* Hidden Quadruples
+
+Intra-Group Algorithms to be encoded:
+* X-Wing
+* Y-Wing
 
 
 ## License
