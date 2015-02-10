@@ -9,85 +9,85 @@
 (def grid
   (vec (repeat 81 cell)))
 
-(defn create_group [xs]
+(defn create-group [xs]
   {:cells xs :set [#{0 1 2 3 4 5 6 7 8}]})
 
-(defn create_horz_group [x]
+(defn create-horz-group [x]
   (let [i (* x 9)]
-    (create_group
+    (create-group
      (vec (range i (+ i 9))))))
 
-(defn create_vert_group [x]
+(defn create-vert-group [x]
   (let [xs
         (vec (for [i (range 0 9)] (+ (* i 9)  x)))]
-    (create_group xs)))
+    (create-group xs)))
 
-(defn create_groups [f]
+(defn create-groups [f]
   (vec (for [i (range 0 9)] (f i))))
 
-(def horz_groups (create_groups create_horz_group))
-(def vert_groups (create_groups create_vert_group))
+(def horz-groups (create-groups create-horz-group))
+(def vert-groups (create-groups create-vert-group))
 
-(def square_groups
+(def square-groups
   [
-   (create_group [0 1 2 9 10 11 18 19 20])
-   (create_group [3 4 5 12 13 14 21 22 23])
-   (create_group [6 7 8 15 16 17 24 25 26])
-   (create_group [27 28 29 36 37 38 45 46 47])
-   (create_group [30 31 32 39 40 41 48 49 50])
-   (create_group [33 34 35 42 43 44 51 52 53])
-   (create_group [54 55 56 63 64 65 72 73 74])
-   (create_group [57 58 59 66 67 68 75 76 77])
-   (create_group [60 61 62 69 70 71 78 79 80])
+   (create-group [0 1 2 9 10 11 18 19 20])
+   (create-group [3 4 5 12 13 14 21 22 23])
+   (create-group [6 7 8 15 16 17 24 25 26])
+   (create-group [27 28 29 36 37 38 45 46 47])
+   (create-group [30 31 32 39 40 41 48 49 50])
+   (create-group [33 34 35 42 43 44 51 52 53])
+   (create-group [54 55 56 63 64 65 72 73 74])
+   (create-group [57 58 59 66 67 68 75 76 77])
+   (create-group [60 61 62 69 70 71 78 79 80])
    ])
 
-(def data
+(def ^:dynamic *data*
   {
    :grid grid
    :groups {
-            :ver vert_groups
-            :hor horz_groups
-            :sqr square_groups
+            :ver vert-groups
+            :hor horz-groups
+            :sqr square-groups
             }
    })
 
 ;-------------------------------------------------------------------------------
 ; cell functions
 
-(defn remove_cell_value [c val]
+(defn remove-cell-value [c val]
   (disj c val))
 
-(defn cell_is_empty [c]
+(defn cell-is-empty [c]
   (= (count c) 0))
 
-(defn cell_is_done [c]
+(defn cell-is-done [c]
   (= (count c) 1))
 
-(defn cell_contents_to_string [c]
-  (if (cell_is_empty c)
+(defn cell-contents-to-string [c]
+  (if (cell-is-empty c)
     "0"
-    (if (cell_is_done c)
+    (if (cell-is-done c)
       (reduce str c)
       (str "[" (reduce str c) "]"))))
 
 ;-------------------------------------------------------------------------------
 ; grid functions
 
-(defn remove_grid_value [g pos val]
+(defn remove-grid-value [g pos val]
   (assoc g pos
-         (remove_cell_value (g pos) val)))
+         (remove-cell-value (g pos) val)))
 
-(defn remove_grid_values [grid requests]
+(defn remove-grid-values [grid requests]
   (loop [g grid r requests]
     (if (seq r)
-      (let [[pos val] (first r) g (remove_grid_value g pos val)]
+      (let [[pos val] (first r) g (remove-grid-value g pos val)]
         (recur g (next r)))
       g)))
 
-(defn assign_grid_value [g pos val]
+(defn assign-grid-value [g pos val]
   (assoc g pos #{val}))
 
-(defn get_group_cells [grid group]
+(defn get-group-cells [grid group]
   (loop [keys (:cells group) acc []]
     (if (seq keys)
       (let [key (first keys)]
@@ -97,7 +97,7 @@
 ;-------------------------------------------------------------------------------
 ; simplifying functions
 
-(defn process_naked_singles [cells]
+(defn process-naked-singles [cells]
   (loop [i 0 acc []]
     (if (< i 9)
       (let [r (if (= (count (cells i)) 1)
@@ -111,7 +111,7 @@
         (recur (inc i) (concat acc r)))
       acc)))
 
-(defn compile_num_map [cells]
+(defn compile-num-map [cells]
   (loop [i 0 map {}]
     (if (< i 9)
       (let [cell (cells i)
@@ -125,11 +125,11 @@
         (recur (inc i) map))
       map)))
 
-(defn process_hidden_singles [cells]
-  (let [num_map (compile_num_map cells)]
+(defn process-hidden-singles [cells]
+  (let [num-map (compile-num-map cells)]
     (loop [i 1 acc []]
       (if (<= i 9)
-        (let [xs (num_map i)]
+        (let [xs (num-map i)]
           (if  (= (count xs) 1)
             (let [x (first xs)
                   cell (cells x)
@@ -145,14 +145,14 @@
             (recur (inc i) acc)))
         acc))))
 
-(defn simplify_group [alg grid group]
-  (let [group_keys (:cells group)
-        results (alg (get_group_cells grid group))
-        updates (mapv (fn [i] (let [[x y] i] [(group_keys x) y])) results)]
-    [(remove_grid_values grid updates) (> (count updates) 0)]))
+(defn simplify-group [alg grid group]
+  (let [group-keys (:cells group)
+        results (alg (get-group-cells grid group))
+        updates (mapv (fn [i] (let [[x y] i] [(group-keys x) y])) results)]
+    [(remove-grid-values grid updates) (> (count updates) 0)]))
 
-(defn simplify_groups
-  ([alg] (fn [data] (simplify_groups alg data)))
+(defn simplify-groups
+  ([alg] (fn [data] (simplify-groups alg data)))
   ([alg data]
    (let [groups (:groups data)
          gs (concat (:ver groups) (:hor groups) (:sqr groups))]
@@ -161,15 +161,15 @@
             changed false]
        (if (seq gs)
          (let [group (first gs)
-               [grid group_changed] (simplify_group alg grid group)]
-           (recur grid (next gs) (or group_changed changed)))
+               [grid group-changed] (simplify-group alg grid group)]
+           (recur grid (next gs) (or group-changed changed)))
          [(assoc data :grid grid) changed])))))
 
 (def algorithms
   {
    :functions [
-               (simplify_groups process_naked_singles)
-               (simplify_groups process_hidden_singles)
+               (simplify-groups process-naked-singles)
+               (simplify-groups process-hidden-singles)
                ]
    :descriptions [
                   "Naked Singles"
@@ -177,7 +177,7 @@
                   ]
    })
 
-(defn run_algs [data counter]
+(defn run-algs [data counter]
   (loop [data data algcount 1]
     (let [alg ((:functions algorithms) (- algcount 1))
           [data changed] (alg data)]
@@ -188,20 +188,20 @@
         [data changed]
         ))))
 
-(defn data_is_solved [data]
+(defn data-is-solved [data]
   (loop [cells (:grid data)]
     (if (seq cells)
       (let [cell (first cells)]
-        (if (cell_is_done cell)
+        (if (cell-is-done cell)
           (recur (next cells))
           false))
       true)))
 
-(defn simplify_data [max_num_runs data]
+(defn simplify-data [max-num-runs data]
   (loop [data data counter 1]
-    (let [[data changed] (run_algs data counter)]
-      (if (and (< counter max_num_runs) (= changed true))
-        (if (data_is_solved data)
+    (let [[data changed] (run-algs data counter)]
+      (if (and (< counter max-num-runs) (= changed true))
+        (if (data-is-solved data)
           (do
             (println "Solved!")
             data)
@@ -211,32 +211,32 @@
 ;-------------------------------------------------------------------------------
 ; solution functions
 
-(defn assign_value [data x y val]
+(defn assign-value [data x y val]
   (let [pos (+ (* (- x 1) 9) (- y 1))]
-    (assoc data :grid (assign_grid_value (:grid data) pos val))))
+    (assoc data :grid (assign-grid-value (:grid data) pos val))))
 
-(defn assign_values [data vals]
+(defn assign-values [data vals]
   (loop [d data vs vals]
     (if (seq vs)
       (let [[x y val] (first vs)
-            d (assign_value d x y val)]
+            d (assign-value d x y val)]
        (recur d (next vs)))
       d)))
 
-(defn solve_data [data]
-  (simplify_data 100 data))
+(defn solve-data [data]
+  (simplify-data 100 data))
 
-(defn solve_puzzle [puzzle]
-  (solve_data (assign_values data puzzle)))
+(defn solve-puzzle [puzzle]
+  (solve-data (assign-values *data* puzzle)))
 
-(defn fake_solve_zero_fill [data]
+(defn fake-solve-zero-fill [data]
   (let [grid
         (loop [cells (:grid data) counter 0]
           (if (< counter 81)
             (let [cells
-                  (if (cell_is_done (cells counter))
+                  (if (cell-is-done (cells counter))
                     cells
-                    (assign_grid_value cells counter 0))]
+                    (assign-grid-value cells counter 0))]
               (recur cells (inc counter)))
             cells))]
     (assoc data :grid grid)))
@@ -244,23 +244,23 @@
 ;-------------------------------------------------------------------------------
 ; print functions
 
-(defn grid_to_string [wrap_grid wrap_row wrap_done wrap_cell wrap_empty g]
-  (wrap_grid
+(defn grid-to-string [wrap-grid wrap-row wrap-done wrap-cell wrap-empty g]
+  (wrap-grid
    (reduce str
     (for [i (range 0 9)]
-      (wrap_row
+      (wrap-row
        (reduce
         str
         (for [j (range 0 9)]
-          (let [x (+ (* i 9) j) c (g x) s (cell_contents_to_string c)]
-            (if (cell_is_done c)
-              (wrap_done s)
-              (if (cell_is_empty c)
-                (wrap_empty s)
-                (wrap_cell s)))))))))))
+          (let [x (+ (* i 9) j) c (g x) s (cell-contents-to-string c)]
+            (if (cell-is-done c)
+              (wrap-done s)
+              (if (cell-is-empty c)
+                (wrap-empty s)
+                (wrap-cell s)))))))))))
 
-(defn grid_to_html [grid]
-  (grid_to_string
+(defn grid-to-html [grid]
+  (grid-to-string
    (fn [s] (str "<table border=\"1\" cellpadding=\"8\" cellspacing=\"0\">"
                s "</table>"))
    (fn [s] (str "<tr>" s "</tr>"))
@@ -273,11 +273,11 @@
   (with-open [wtr (clojure.java.io/writer file-path)]
     (.write wtr str)))
 
-(defn write_grid [file-path grid]
-  (writestr file-path (grid_to_html grid)))
+(defn write-grid [file-path grid]
+  (writestr file-path (grid-to-html grid)))
 
-(defn write_data [file-path data]
-  (write_grid file-path (:grid data)))
+(defn write-data [file-path data]
+  (write-grid file-path (:grid data)))
 
 ;-------------------------------------------------------------------------------
 ; puzzles
