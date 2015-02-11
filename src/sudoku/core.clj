@@ -41,7 +41,7 @@
    (create-group [60 61 62 69 70 71 78 79 80])
    ])
 
-(def ^:dynamic *data*
+(def data
   {
    :grid grid
    :groups {
@@ -227,7 +227,7 @@
   (simplify-data 100 data))
 
 (defn solve-puzzle [puzzle]
-  (solve-data (assign-values *data* puzzle)))
+  (solve-data (assign-values data puzzle)))
 
 (defn fake-solve-zero-fill [data]
   (let [grid

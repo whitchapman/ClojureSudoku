@@ -20,7 +20,7 @@ I use Emacs Live with the following steps to prepare this project for hacking in
 In this namespace, "data" is a blank sudoku data structure. To see a visual represenation of this data structure, write html to a file, per code below, and then open the resultant file in any browser:
 
 ```clojure
-(write-data "/absolute/path/works/best/data.html" *data*)
+(write-data "/absolute/path/works/best/data.html" data)
 ```
 
 The image at this link shows that every cell can have the possible values [1-9]:
@@ -35,7 +35,7 @@ Given this puzzle: [Puzzle #1](images/puzzle1/puzzle1.png)
 Load the encoded puzzle1 into a data structure, and then write html to a file to view in a browser:
 
 ```clojure
-(def data2 (assign-values *data* puzzle1))
+(def data2 (assign-values data puzzle1))
 (write-data "/absolute/path/works/best/data.html" data2)
 ```
 
