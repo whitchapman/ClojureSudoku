@@ -1,4 +1,5 @@
-(ns sudoku.core)
+(ns sudoku.core
+  (:require [clojure.set :as st]))
 
 ;-------------------------------------------------------------------------------
 ; initialization
@@ -10,7 +11,11 @@
   (vec (repeat 81 cell)))
 
 (defn create-group [xs]
-  {:cells xs :set [#{0 1 2 3 4 5 6 7 8}]})
+  {
+   :cells xs
+   ;:set [#{0 1 2 3 4 5 6 7 8}]
+   }
+  )
 
 (defn create-horz-group [x]
   (let [i (* x 9)]
@@ -95,6 +100,59 @@
       acc)))
 
 ;-------------------------------------------------------------------------------
+; processing utilities
+
+(defn combos [n x]
+  (defn f [p ns x]
+    (loop [ns ns acc []]
+      (if-let [[n & ns] (seq ns)]
+        (let [p (conj p n)
+              acc (if (= x 1)
+                    (conj acc p)
+                    (concat acc (f p ns (dec x))))]
+          (recur ns acc))
+        acc)))
+  (f [] (range 0 n) x))
+
+(defn find-set [cells x]
+  (let [cs (combos (count cells) x)]
+    (loop [cs cs]
+      (if-let [[c & cs] (seq cs)]
+        (let [vs (reduce st/union #{} (map (fn [i] (cells i)) c))]
+          (if (= (count vs) x)
+            [c vs]
+            (recur cs)))
+        nil))))
+
+(defn find-remove-values [cells rem vs]
+  (reduce concat
+          (map
+           (fn [i]
+             (map
+              (fn [v] [i v])
+              (filter (partial contains? (cells i)) vs)))
+           rem)))
+
+(defn process [cells]
+  (loop [cells cells
+         rem (reduce conj (sorted-set) (range 0 (count cells)))
+         x 1
+         acc []]
+    (if (>= x (count rem)) acc
+        (let [cs (map (fn [i] (cells i)) rem)]
+          (if-let [[ks vs] (find-set (vec cs) x)]
+            (do
+              (let [vem (vec rem)
+                    rem (reduce disj rem (map (fn [x] (vem x)) ks))
+                    zs (find-remove-values cells rem vs)
+                    cells (loop [cells cells zs zs]
+                            (if-let [[[i v] & zs] (seq zs)]
+                              (recur (assoc cells i (disj (cells i) v)) zs)
+                              cells))]
+                (recur cells rem 1 (concat acc zs))))
+            (recur cells rem (inc x) acc))))))
+
+;-------------------------------------------------------------------------------
 ; simplifying functions
 
 (defn process-naked-singles [cells]
@@ -166,23 +224,19 @@
          [(assoc data :grid grid) changed])))))
 
 (def algorithms
-  {
-   :functions [
-               (simplify-groups process-naked-singles)
-               (simplify-groups process-hidden-singles)
-               ]
-   :descriptions [
-                  "Naked Singles"
-                  "Hidden Singles"
-                  ]
-   })
+  [
+   [(simplify-groups process) "New Naked/Hidden"]
+   [(simplify-groups process-naked-singles) "Naked Singles"]
+   [(simplify-groups process-hidden-singles) "Hidden Singles"]
+   ])
 
 (defn run-algs [data counter]
   (loop [data data algcount 1]
-    (let [alg ((:functions algorithms) (- algcount 1))
+    (let [algorithm (algorithms (dec algcount))
+          alg (algorithm 0)
           [data changed] (alg data)]
       (println (str "Run #" counter " Alg #" algcount " ("
-                    ((:descriptions algorithms) (- algcount 1)) ") changed=" changed))
+                    (algorithm 1) ") changed=" changed))
       (if (and (= changed false) (< algcount (count algorithms)))
         (recur data (inc algcount))
         [data changed]
@@ -378,6 +432,94 @@
    [9 2 3]
    [9 3 9]
    [9 8 4]
+   ])
+
+(def puzzle4
+  [
+   [1 4 2]
+   [1 7 8]
+   [1 8 3]
+   [2 5 8]
+   [2 7 5]
+   [3 1 3]
+   [3 2 8]
+   [3 4 5]
+   [3 7 6]
+   [4 3 1]
+   [4 8 9]
+   [4 9 3]
+   [5 3 4]
+   [5 7 1]
+   [6 1 9]
+   [6 2 6]
+   [6 7 2]
+   [7 3 3]
+   [7 6 9]
+   [7 8 1]
+   [7 9 4]
+   [8 3 9]
+   [8 5 5]
+   [9 2 1]
+   [9 3 2]
+   [9 6 4]
+   ])
+
+(def puzzle5
+  [
+   [1 5 6]
+   [1 6 2]
+   [2 4 3]
+   [2 7 4]
+   [3 1 2]
+   [3 3 3]
+   [3 7 1]
+   [3 8 9]
+   [4 1 8]
+   [4 4 9]
+   [4 8 4]
+   [5 1 6]
+   [5 5 5]
+   [5 9 8]
+   [6 2 4]
+   [6 6 3]
+   [6 9 2]
+   [7 2 5]
+   [7 3 4]
+   [7 7 8]
+   [7 9 1]
+   [8 3 7]
+   [8 6 5]
+   [9 4 1]
+   [9 5 4]
+   ])
+
+(def puzzle6
+  [
+   [1 1 9]
+   [1 5 1]
+   [1 9 7]
+   [2 4 4]
+   [2 6 9]
+   [2 7 6]
+   [2 8 1]
+   [3 3 4]
+   [4 1 6]
+   [4 2 5]
+   [4 6 7]
+   [4 7 9]
+   [5 5 4]
+   [6 3 1]
+   [6 4 2]
+   [6 8 8]
+   [6 9 5]
+   [7 7 2]
+   [8 2 1]
+   [8 3 6]
+   [8 4 9]
+   [8 6 5]
+   [9 1 5]
+   [9 5 3]
+   [9 9 8]
    ])
 
 ;-------------------------------------------------------------------------------
