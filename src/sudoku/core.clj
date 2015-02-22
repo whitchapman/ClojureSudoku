@@ -1,5 +1,4 @@
-(ns sudoku.core
-  (:require [clojure.set :as st]))
+(ns sudoku.core)
 
 ;-------------------------------------------------------------------------------
 ; initialization
@@ -7,13 +6,16 @@
 (def cell
   (sorted-set 1 2 3 4 5 6 7 8 9))
 
+(def starting-positions
+  (sorted-set 0 1 2 3 4 5 6 7 8))
+
 (def grid
   (vec (repeat 81 cell)))
 
 (defn create-group [xs]
   {
-   :cells xs
-   ;:set [#{0 1 2 3 4 5 6 7 8}]
+   :positions xs
+   ;:unsolved (sorted-set 0 1 2 3 4 5 6 7 8)
    }
   )
 
@@ -56,178 +58,117 @@
             }
    })
 
+(defn get-all-groups [data]
+  (let [groups (:groups data)]
+    (concat (:ver groups) (:hor groups) (:sqr groups))))
+
 ;-------------------------------------------------------------------------------
 ; cell functions
-
-(defn remove-cell-value [c val]
-  (disj c val))
 
 (defn cell-is-empty [c]
   (= (count c) 0))
 
-(defn cell-is-done [c]
+(defn cell-solved? [c]
   (= (count c) 1))
 
 (defn cell-contents-to-string [c]
   (if (cell-is-empty c)
     "0"
-    (if (cell-is-done c)
+    (if (cell-solved? c)
       (reduce str c)
       (str "[" (reduce str c) "]"))))
+
+(defn remove-cell-value [c val]
+  (disj c val))
+
+;-------------------------------------------------------------------------------
+; cells functions
+
+(defn remove-cells-value [cells pos val]
+  (assoc cells pos (remove-cell-value (cells pos) val)))
+
+(defn remove-cells-values [cells requests]
+  (loop [cells cells rs requests]
+    (if-let [[[pos val] & rs] (seq rs)]
+      (recur (remove-cells-value cells pos val) rs)
+      cells)))
 
 ;-------------------------------------------------------------------------------
 ; grid functions
 
-(defn remove-grid-value [g pos val]
-  (assoc g pos
-         (remove-cell-value (g pos) val)))
-
-(defn remove-grid-values [grid requests]
-  (loop [g grid r requests]
-    (if (seq r)
-      (let [[pos val] (first r) g (remove-grid-value g pos val)]
-        (recur g (next r)))
-      g)))
-
-(defn assign-grid-value [g pos val]
-  (assoc g pos #{val}))
+(defn assign-grid-value [grid pos val]
+  (assoc grid pos #{val}))
 
 (defn get-group-cells [grid group]
-  (loop [keys (:cells group) acc []]
-    (if (seq keys)
-      (let [key (first keys)]
-        (recur (next keys) (conj acc (grid key))))
+  (loop [keys (:positions group) acc []]
+    (if-let [[key & keys] (seq keys)]
+      (recur keys (conj acc (grid key)))
       acc)))
 
 ;-------------------------------------------------------------------------------
-; processing utilities
+; intra-group simplifying
 
-(defn combos [n x]
-  (defn f [p ns x]
-    (loop [ns ns acc []]
-      (if-let [[n & ns] (seq ns)]
-        (let [p (conj p n)
+(defn generate-combinations [n x]
+  (defn f [prefix es x]
+    (loop [es es acc []]
+      (if-let [[e & es] (seq es)]
+        (let [prefix (conj prefix e)
               acc (if (= x 1)
-                    (conj acc p)
-                    (concat acc (f p ns (dec x))))]
-          (recur ns acc))
+                    (conj acc prefix)
+                    (concat acc (f prefix es (dec x))))]
+          (recur es acc))
         acc)))
   (f [] (range 0 n) x))
 
-(defn find-set [cells x]
-  (let [cs (combos (count cells) x)]
-    (loop [cs cs]
-      (if-let [[c & cs] (seq cs)]
-        (let [vs (reduce st/union #{} (map (fn [i] (cells i)) c))]
-          (if (= (count vs) x)
-            [c vs]
-            (recur cs)))
-        nil))))
+(defn find-matching-set [cells x]
+  (loop [combos (generate-combinations (count cells) x)]
+    (if-let [[keys & combos] (seq combos)]
+      (let [vals (reduce clojure.set/union #{} (map (fn [i] (cells i)) keys))]
+        (if (= (count vals) x)
+          [keys vals]
+          (recur combos)))
+      nil)))
 
-(defn find-remove-values [cells rem vs]
-  (reduce concat
-          (map
-           (fn [i]
-             (map
-              (fn [v] [i v])
-              (filter (partial contains? (cells i)) vs)))
-           rem)))
+(defn find-values-to-remove [cells rems vals]
+  (let [contains-val? (fn [i val] (contains? (cells i) val))]
+    (reduce concat (map (fn [i]
+                          (map
+                           (fn [val] [i val])
+                           (filter (partial contains-val? i) vals)))
+                        rems))))
 
-(defn process [cells]
-  (loop [cells cells
-         rem (reduce conj (sorted-set) (range 0 (count cells)))
-         x 1
-         acc []]
-    (if (>= x (count rem)) acc
-        (let [cs (map (fn [i] (cells i)) rem)]
-          (if-let [[ks vs] (find-set (vec cs) x)]
-            (do
-              (let [vem (vec rem)
-                    rem (reduce disj rem (map (fn [x] (vem x)) ks))
-                    zs (find-remove-values cells rem vs)
-                    cells (loop [cells cells zs zs]
-                            (if-let [[[i v] & zs] (seq zs)]
-                              (recur (assoc cells i (disj (cells i) v)) zs)
-                              cells))]
-                (recur cells rem 1 (concat acc zs))))
-            (recur cells rem (inc x) acc))))))
+(defn process-group [cells rems]
+  (loop [cells cells rems rems x 1 acc []]
+    (if (>= x (count rems)) acc
+        (let [cs (map (fn [i] (cells i)) rems)]
+          (if-let [[keys vals] (find-matching-set (vec cs) x)]
+            (let [vrems (vec rems)
+                  rems (reduce disj rems (map (fn [k] (vrems k)) keys))
+                  requests (find-values-to-remove cells rems vals)
+                  cells (remove-cells-values cells requests)]
+              (recur cells rems 1 (concat acc requests)))
+            (recur cells rems (inc x) acc))))))
+
+(defn simplify-group [grid group]
+  (let [cells (get-group-cells grid group)
+        results (process-group cells starting-positions)
+        group-keys (:positions group)
+        updates (mapv (fn [i] (let [[x y] i] [(group-keys x) y])) results)]
+    [(remove-cells-values grid updates) (> (count updates) 0)]))
+
+(defn simplify-groups [data]
+  (loop [grid (:grid data) groups (get-all-groups data) changed false]
+    (if-let [[group & groups] (seq groups)]
+      (let [[grid group-changed] (simplify-group grid group)]
+        (recur grid groups (or group-changed changed)))
+      [(assoc data :grid grid) changed])))
 
 ;-------------------------------------------------------------------------------
-; simplifying functions
-
-(defn process-naked-singles [cells]
-  (loop [i 0 acc []]
-    (if (< i 9)
-      (let [r (if (= (count (cells i)) 1)
-                (let [v (first (cells i))]
-                  (mapv
-                   (fn [x] [x v])
-                   (filterv
-                    (fn [x] (and (not= x i) (contains? (cells x) v)))
-                    (range 0 9))))
-                [])]
-        (recur (inc i) (concat acc r)))
-      acc)))
-
-(defn compile-num-map [cells]
-  (loop [i 0 map {}]
-    (if (< i 9)
-      (let [cell (cells i)
-            map (loop [map map xs (vec cell)]
-                  (if (seq xs)
-                    (let [x (first xs)
-                          ys (conj (get map x []) i)
-                          map (assoc map x ys)]
-                      (recur map (next xs)))
-                    map))]
-        (recur (inc i) map))
-      map)))
-
-(defn process-hidden-singles [cells]
-  (let [num-map (compile-num-map cells)]
-    (loop [i 1 acc []]
-      (if (<= i 9)
-        (let [xs (num-map i)]
-          (if  (= (count xs) 1)
-            (let [x (first xs)
-                  cell (cells x)
-                  acc (loop [acc acc nums cell]
-                        (if (seq nums)
-                          (let [num (first nums)
-                                acc (if (not= i num)
-                                      (concat acc [[x num]])
-                                      acc)]
-                            (recur acc (next nums)))
-                          acc))]
-              (recur (inc i) acc))
-            (recur (inc i) acc)))
-        acc))))
-
-(defn simplify-group [alg grid group]
-  (let [group-keys (:cells group)
-        results (alg (get-group-cells grid group))
-        updates (mapv (fn [i] (let [[x y] i] [(group-keys x) y])) results)]
-    [(remove-grid-values grid updates) (> (count updates) 0)]))
-
-(defn simplify-groups
-  ([alg] (fn [data] (simplify-groups alg data)))
-  ([alg data]
-   (let [groups (:groups data)
-         gs (concat (:ver groups) (:hor groups) (:sqr groups))]
-     (loop [grid (:grid data)
-            gs gs
-            changed false]
-       (if (seq gs)
-         (let [group (first gs)
-               [grid group-changed] (simplify-group alg grid group)]
-           (recur grid (next gs) (or group-changed changed)))
-         [(assoc data :grid grid) changed])))))
+; algorithms
 
 (def algorithms
   [
-   [(simplify-groups process) "New Naked/Hidden"]
-   [(simplify-groups process-naked-singles) "Naked Singles"]
-   [(simplify-groups process-hidden-singles) "Hidden Singles"]
+   [simplify-groups "Simplify Groups"]
    ])
 
 (defn run-algs [data counter]
@@ -242,20 +183,20 @@
         [data changed]
         ))))
 
-(defn data-is-solved [data]
+(defn data-solved? [data]
   (loop [cells (:grid data)]
     (if (seq cells)
       (let [cell (first cells)]
-        (if (cell-is-done cell)
+        (if (cell-solved? cell)
           (recur (next cells))
           false))
       true)))
 
-(defn simplify-data [max-num-runs data]
+(defn solve-data [max-num-runs data]
   (loop [data data counter 1]
     (let [[data changed] (run-algs data counter)]
       (if (and (< counter max-num-runs) (= changed true))
-        (if (data-is-solved data)
+        (if (data-solved? data)
           (do
             (println "Solved!")
             data)
@@ -277,18 +218,15 @@
        (recur d (next vs)))
       d)))
 
-(defn solve-data [data]
-  (simplify-data 100 data))
-
 (defn solve-puzzle [puzzle]
-  (solve-data (assign-values data puzzle)))
+  (solve-data 100 (assign-values data puzzle)))
 
 (defn fake-solve-zero-fill [data]
   (let [grid
         (loop [cells (:grid data) counter 0]
           (if (< counter 81)
             (let [cells
-                  (if (cell-is-done (cells counter))
+                  (if (cell-solved? (cells counter))
                     cells
                     (assign-grid-value cells counter 0))]
               (recur cells (inc counter)))
@@ -307,7 +245,7 @@
         str
         (for [j (range 0 9)]
           (let [x (+ (* i 9) j) c (g x) s (cell-contents-to-string c)]
-            (if (cell-is-done c)
+            (if (cell-solved? c)
               (wrap-done s)
               (if (cell-is-empty c)
                 (wrap-empty s)
