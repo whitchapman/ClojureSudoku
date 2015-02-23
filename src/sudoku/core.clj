@@ -65,18 +65,17 @@
 ;-------------------------------------------------------------------------------
 ; cell functions
 
-(defn cell-is-empty [c]
+(defn cell-empty? [c]
   (= (count c) 0))
 
 (defn cell-solved? [c]
   (= (count c) 1))
 
 (defn cell-contents-to-string [c]
-  (if (cell-is-empty c)
-    "0"
-    (if (cell-solved? c)
-      (reduce str c)
-      (str "[" (reduce str c) "]"))))
+  (if (cell-empty? c) "0"
+      (if (cell-solved? c)
+        (reduce str c)
+        (str "[" (reduce str c) "]"))))
 
 (defn remove-cell-value [c val]
   (disj c val))
@@ -137,16 +136,16 @@
                            (filter (partial contains-val? i) vals)))
                         rems))))
 
-(defn process-group [cells rems]
-  (loop [cells cells rems rems x 1 acc []]
+(defn process-group [cells remaining-positions]
+  (loop [cells cells rems remaining-positions x 1 acc []]
     (if (>= x (count rems)) acc
         (let [cs (map (fn [i] (cells i)) rems)]
           (if-let [[keys vals] (find-matching-set (vec cs) x)]
             (let [vrems (vec rems)
                   rems (reduce disj rems (map (fn [k] (vrems k)) keys))
-                  requests (find-values-to-remove cells rems vals)
-                  cells (remove-cells-values cells requests)]
-              (recur cells rems 1 (concat acc requests)))
+                  results (find-values-to-remove cells rems vals)
+                  cells (remove-cells-values cells results)]
+              (recur cells rems 1 (concat acc results)))
             (recur cells rems (inc x) acc))))))
 
 (defn simplify-group [grid group]
@@ -218,8 +217,10 @@
        (recur d (next vs)))
       d)))
 
-(defn solve-puzzle [puzzle]
-  (solve-data 100 (assign-values data puzzle)))
+(defn solve-puzzle
+  ([puzzle] (solve-puzzle puzzle 100))
+  ([puzzle max-iterations]
+   (solve-data max-iterations (assign-values data puzzle))))
 
 (defn fake-solve-zero-fill [data]
   (let [grid
@@ -247,7 +248,7 @@
           (let [x (+ (* i 9) j) c (g x) s (cell-contents-to-string c)]
             (if (cell-solved? c)
               (wrap-done s)
-              (if (cell-is-empty c)
+              (if (cell-empty? c)
                 (wrap-empty s)
                 (wrap-cell s)))))))))))
 
@@ -265,11 +266,8 @@
   (with-open [wtr (clojure.java.io/writer file-path)]
     (.write wtr str)))
 
-(defn write-grid [file-path grid]
-  (writestr file-path (grid-to-html grid)))
-
 (defn write-data [file-path data]
-  (write-grid file-path (:grid data)))
+  (writestr file-path (grid-to-html (:grid data))))
 
 ;-------------------------------------------------------------------------------
 ; puzzles
