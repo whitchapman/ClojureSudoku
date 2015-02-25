@@ -44,7 +44,7 @@ Load the encoded puzzle1 into a data structure, and then write html to a file to
 
 Solving the puzzle involves incrementally simplifying the data structure using increasingly complex algorithms dependent on puzzle difficulty.
 
-The next step simplifies the puzzle be removing as many values as possible by iterating over all groups and applying the intra-group algorithm. Here is the first iteration:
+The next step simplifies the puzzle by iterating over all groups and applying the intra-group algorithm. The first iteration:
 
 ```clojure
 (def data3 (solve-puzzle puzzle1 1))
@@ -56,7 +56,7 @@ The next step simplifies the puzzle be removing as many values as possible by it
 
 Each iteration of the algorithm attempts to simplify each group by creating sets within the group that contain exclusive values. The simplest case is a naked single in which a solved cell results in removing that cell's value from every other cell in the group. The algorithm continues by attempting to create exclusive value sets up to size 8.
 
-Here is the second iteration:
+The second iteration:
 
 ```clojure
 (def data4 (solve-puzzle puzzle1 2))
@@ -79,21 +79,22 @@ After the 3rd iteration, the puzzle is solved:
 
 The intra-group algorithm addresses all of these possible occurrences (previously addressed in separate algorithms):
 * Naked Singles
-* Hidden Singles
 * Naked Doubles
-* Hidden Doubles
 * Naked Triples
-* Hidden Triples
 * Naked Quadruples
+* Hidden Singles
+* Hidden Doubles
+* Hidden Triples
 * Hidden Quadruples
 
 
 In the case of harder puzzles, inter-group algorithms are needed to continue simplifying the problem space.
 
 Inter-Group Algorithms to be encoded:
+* Locked Candidates
 * X-Wing
-* Y-Wing
-* ...
+* XY-Wing
+* Swordfish
 
 
 ## License

@@ -163,11 +163,76 @@
       [(assoc data :grid grid) changed])))
 
 ;-------------------------------------------------------------------------------
+; locked candidates
+
+
+(defn get-locked-group-pairs [data]
+  (let [groups (:groups data)]
+    (reduce
+     concat
+     (map
+      (fn [i]
+        (let [sqr (set (:positions ((:sqr groups) i)))]
+          (reduce
+           concat
+           (map
+            (fn [j]
+              [[sqr (set (:positions ((:ver groups) (+ j (* 3 (mod i 3))))))]
+               [sqr (set (:positions ((:hor groups) (+ j (* 3 (quot i 3))))))]])
+            (range 0 3)))))
+      (range 0 9)))))
+
+(defn partition-sets
+  ([pair] (let [[set1 set2] pair] (partition-sets set1 set2)))
+  ([set1 set2]
+    [(clojure.set/difference set1 set2)
+     (clojure.set/intersection set1 set2)
+     (clojure.set/difference set2 set1)]))
+
+(defn create-unsolved-cell-map [grid positions]
+  (loop [xs positions acc {}]
+    (if-let [[x & xs] (seq xs)]
+      (let [cell (grid x)]
+        (if (cell-solved? cell)
+          (recur xs acc)
+          (recur xs (assoc acc x cell))))
+      acc)))
+
+(defn generate-locked-updates [m1 m2 m3]
+  (let [[vals1 vals2 vals3]
+        (map (fn [m] (reduce clojure.set/union (vals m))) [m1 m2 m3])]
+    (loop [vals vals2 acc []]
+      (if-let [[val & vals] (seq vals)]
+        (let [f
+              (fn [v m]
+                (if (contains? v val) []
+                    (reduce concat
+                            (map
+                             (fn [i] (let [t (get m i)]  (if (contains? t val) [[i val]] [])))
+                             (keys m)))
+                    ))]
+          (recur vals (concat acc (f vals1 m3) (f vals3 m1))))
+        acc))))
+
+(defn locked-candidates [data]
+  (let [grid (:grid data)]
+    (loop [pairs (get-locked-group-pairs data)]
+      (if-let [[pair & pairs] (seq pairs)]
+        (let [[t1 t2 t3] (partition-sets pair)
+              [m1 m2 m3] (map (partial create-unsolved-cell-map grid) [t1 t2 t3])
+              updates (generate-locked-updates m1 m2 m3)]
+          (if (> (count updates) 0)
+            [(assoc data :grid (remove-cells-values grid updates)) true]
+            (recur pairs )))
+        [data false]))))
+
+;-------------------------------------------------------------------------------
 ; algorithms
 
 (def algorithms
   [
    [simplify-groups "Simplify Groups"]
+   [locked-candidates "Locked Candidates"]
    ])
 
 (defn run-algs [data counter]
@@ -456,6 +521,160 @@
    [9 1 5]
    [9 5 3]
    [9 9 8]
+   ])
+
+(def puzzle7
+  [
+   [1 1 9]
+   [1 5 6]
+   [1 6 5]
+   [1 7 8]
+   [2 1 8]
+   [2 3 7]
+   [2 9 2]
+   [3 5 1]
+   [4 1 7]
+   [4 3 1]
+   [4 4 3]
+   [4 8 6]
+   [5 2 4]
+   [5 8 2]
+   [6 2 8]
+   [6 6 7]
+   [6 7 5]
+   [6 9 1]
+   [7 5 2]
+   [8 1 3]
+   [8 7 1]
+   [8 9 6]
+   [9 3 6]
+   [9 4 5]
+   [9 5 9]
+   [9 9 4]
+   ])
+
+;locked candidate
+(def puzzle8
+  [
+   [1 1 9]
+   [1 7 4]
+   [1 8 8]
+   [1 9 6]
+   [2 5 9]
+   [2 7 1]
+   [3 1 2]
+   [3 4 5]
+   [3 6 6]
+   [4 2 1]
+   [4 3 6]
+   [4 5 3]
+   [4 6 5]
+   [4 8 4]
+   [5 2 2]
+   [5 8 6]
+   [6 2 9]
+   [6 4 6]
+   [6 5 8]
+   [6 7 2]
+   [6 8 3]
+   [7 4 9]
+   [7 6 8]
+   [7 9 4]
+   [8 3 2]
+   [8 5 5]
+   [9 1 6]
+   [9 2 4]
+   [9 3 9]
+   [9 9 8]
+   ])
+
+;locked candidate
+(def puzzle9
+  [
+   [1 3 7]
+   [1 6 5]
+   [1 9 3]
+   [2 2 4]
+   [2 5 2]
+   [2 8 9]
+   [3 1 1]
+   [3 4 8]
+   [3 7 6]
+   [4 3 8]
+   [4 5 6]
+   [4 6 9]
+   [4 9 2]
+   [5 2 6]
+   [5 4 2]
+   [5 6 1]
+   [5 8 3]
+   [6 1 4]
+   [6 4 5]
+   [6 5 8]
+   [6 7 1]
+   [7 3 6]
+   [7 6 8]
+   [7 9 1]
+   [8 2 2]
+   [8 5 1]
+   [8 8 8]
+   [9 1 8]
+   [9 4 7]
+   [9 7 3]
+   ])
+
+;locked candidate and x-wing
+(def puzzle10
+  [
+   [1 2 3]
+   [1 3 7]
+   [1 4 4]
+   [1 5 8]
+   [1 6 1]
+   [1 7 6]
+   [1 9 9]
+   [2 2 9]
+   [2 5 2]
+   [2 6 7]
+   [2 8 3]
+   [2 9 8]
+   [3 1 8]
+   [3 4 3]
+   [3 6 9]
+   [4 2 1]
+   [4 3 9]
+   [4 4 8]
+   [4 5 7]
+   [4 6 3]
+   [4 8 6]
+   [5 1 7]
+   [5 2 8]
+   [5 6 2]
+   [5 8 9]
+   [5 9 3]
+   [6 4 9]
+   [6 6 4]
+   [6 7 8]
+   [6 8 7]
+   [7 4 2]
+   [7 5 9]
+   [7 6 5]
+   [7 8 8]
+   [7 9 6]
+   [8 3 8]
+   [8 4 1]
+   [8 5 3]
+   [8 6 6]
+   [8 7 9]
+   [9 1 9]
+   [9 2 6]
+   [9 3 2]
+   [9 4 7]
+   [9 5 4]
+   [9 6 8]
+   [9 7 3]
+   [9 8 1]
+   [9 9 5]
    ])
 
 ;-------------------------------------------------------------------------------
