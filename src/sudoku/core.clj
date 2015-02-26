@@ -173,17 +173,14 @@
   (let [groups (:groups data)]
     (reduce
      concat
-     (map
-      (fn [i]
-        (let [sqr (set (:positions ((:sqr groups) i)))]
-          (reduce
-           concat
-           (map
-            (fn [j]
-              [[sqr (set (:positions ((:ver groups) (+ j (* 3 (mod i 3))))))]
-               [sqr (set (:positions ((:hor groups) (+ j (* 3 (quot i 3))))))]])
-            (range 0 3)))))
-      (range 0 9)))))
+     (for [i (range 0 9)]
+       (let [sqr (set (:positions ((:sqr groups) i)))]
+         (reduce
+          concat
+          (for [j (range 0 3)]
+            [[sqr (set (:positions ((:ver groups) (+ j (* 3 (mod i 3))))))]
+             [sqr (set (:positions ((:hor groups) (+ j (* 3 (quot i 3))))))]]
+            )))))))
 
 (defn partition-sets
   ([pair] (let [[set1 set2] pair] (partition-sets set1 set2)))
