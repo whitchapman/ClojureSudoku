@@ -44,7 +44,9 @@ Load the encoded puzzle1 into a data structure, and then write html to a file to
 
 Solving the puzzle involves incrementally simplifying the data structure using increasingly complex algorithms dependent on puzzle difficulty.
 
-The next step simplifies the puzzle by iterating over all groups and applying the intra-group algorithm. The first iteration:
+This next step simplifies the puzzle by iterating over all groups and applying the intra-group algorithm.
+
+The first iteration:
 
 ```clojure
 (def data3 (solve-puzzle puzzle1 1))
@@ -54,7 +56,7 @@ The next step simplifies the puzzle by iterating over all groups and applying th
 [Simplified Puzzle Data Structure (1 Iteration)](images/simplify/data1.png)
 
 
-Each iteration of the algorithm attempts to simplify each group by creating sets within the group that contain exclusive values. The simplest case is a naked single in which a solved cell results in removing that cell's value from every other cell in the group. The algorithm continues by attempting to create exclusive value sets up to size 8.
+An iteration of the algorithm attempts to simplify each group in turn by creating sets within the group that contain exclusive values. The simplest case is a naked single: a solved cell results in removing that cell's value from every other cell in the group. The algorithm continues by attempting to create exclusive value sets up to a size of one less than the number of unsolved cells in the group (e.g. max size 8 for 9 unsolved cells).
 
 The second iteration:
 
