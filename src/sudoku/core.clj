@@ -1,5 +1,21 @@
 (ns sudoku.core)
 
+
+;-------------------------------------------------------------------------------
+; utility
+
+(defn generate-combinations [n x]
+  (defn f [prefix es x]
+    (loop [es es acc []]
+      (if-let [[e & es] (seq es)]
+        (let [prefix (conj prefix e)
+              acc (if (= x 1)
+                    (conj acc prefix)
+                    (concat acc (f prefix es (dec x))))]
+          (recur es acc))
+        acc)))
+  (f [] (range 0 n) x))
+
 ;-------------------------------------------------------------------------------
 ; initialization
 
@@ -107,18 +123,6 @@
 ;-------------------------------------------------------------------------------
 ; intra-group simplifying
 
-(defn generate-combinations [n x]
-  (defn f [prefix es x]
-    (loop [es es acc []]
-      (if-let [[e & es] (seq es)]
-        (let [prefix (conj prefix e)
-              acc (if (= x 1)
-                    (conj acc prefix)
-                    (concat acc (f prefix es (dec x))))]
-          (recur es acc))
-        acc)))
-  (f [] (range 0 n) x))
-
 (defn find-matching-set [cells x]
   (loop [combos (generate-combinations (count cells) x)]
     (if-let [[keys & combos] (seq combos)]
@@ -165,7 +169,6 @@
 ;-------------------------------------------------------------------------------
 ; locked candidates
 
-
 (defn get-locked-group-pairs [data]
   (let [groups (:groups data)]
     (reduce
@@ -198,20 +201,21 @@
           (recur xs (assoc acc x cell))))
       acc)))
 
+(defn locked-updates-step [val non-vals find-map]
+  (if (contains? non-vals val) []
+      (do (defn f [i]
+            (let [t (get find-map i)]
+              (if (contains? t val) [[i val]] [])))
+          (reduce concat (map f (keys find-map))))))
+
 (defn generate-locked-updates [m1 m2 m3]
   (let [[vals1 vals2 vals3]
         (map (fn [m] (reduce clojure.set/union (vals m))) [m1 m2 m3])]
     (loop [vals vals2 acc []]
       (if-let [[val & vals] (seq vals)]
-        (let [f
-              (fn [v m]
-                (if (contains? v val) []
-                    (reduce concat
-                            (map
-                             (fn [i] (let [t (get m i)]  (if (contains? t val) [[i val]] [])))
-                             (keys m)))
-                    ))]
-          (recur vals (concat acc (f vals1 m3) (f vals3 m1))))
+        (let [updates1 (locked-updates-step val vals3 m1)
+              updates3 (locked-updates-step val vals1 m3)]
+          (recur vals (concat acc updates1 updates3)))
         acc))))
 
 (defn locked-candidates [data]
@@ -553,7 +557,6 @@
    [9 9 4]
    ])
 
-;locked candidate
 (def puzzle8
   [
    [1 1 9]
@@ -675,6 +678,100 @@
    [9 7 3]
    [9 8 1]
    [9 9 5]
+   ])
+
+;locked candidate and xy-wing (non-sqr)
+(def puzzle11
+  [
+   [2 4 1]
+   [2 6 7]
+   [2 9 8]
+   [3 2 7]
+   [3 4 3]
+   [3 5 9]
+   [3 6 2]
+   [3 7 5]
+   [3 8 4]
+   [3 9 1]
+   [4 3 4]
+   [4 8 9]
+   [4 9 2]
+   [5 3 5]
+   [5 7 6]
+   [6 1 9]
+   [6 2 3]
+   [6 7 4]
+   [7 1 1]
+   [7 2 9]
+   [7 3 2]
+   [7 4 7]
+   [7 5 8]
+   [7 6 5]
+   [7 8 6]
+   [8 1 5]
+   [8 4 4]
+   [8 6 3]
+   ])
+
+;xy-wing (sqr)
+(def puzzle12
+  [
+   [1 5 6]
+   [1 7 7]
+   [2 1 4]
+   [2 6 5]
+   [2 7 8]
+   [2 9 3]
+   [3 3 5]
+   [3 6 3]
+   [3 8 6]
+   [4 2 1]
+   [4 6 9]
+   [5 3 7]
+   [5 5 2]
+   [5 7 4]
+   [6 4 1]
+   [6 8 2]
+   [7 2 2]
+   [7 4 7]
+   [7 7 3]
+   [8 1 1]
+   [8 3 3]
+   [8 4 5]
+   [8 9 9]
+   [9 3 6]
+   [9 5 4]
+   ])
+
+;locked candidates, possible x or xy wing, and swordfish
+(def puzzle13
+  [
+   [1 3 7]
+   [1 7 2]
+   [1 8 8]
+   [2 3 4]
+   [2 5 2]
+   [2 6 5]
+   [3 1 2]
+   [3 2 8]
+   [3 6 4]
+   [3 7 6]
+   [4 2 9]
+   [4 6 6]
+   [5 1 3]
+   [5 9 2]
+   [6 4 1]
+   [6 8 9]
+   [7 3 6]
+   [7 4 2]
+   [7 8 7]
+   [7 9 5]
+   [8 4 5]
+   [8 5 7]
+   [8 7 4]
+   [9 2 7]
+   [9 3 8]
+   [9 7 3]
    ])
 
 ;-------------------------------------------------------------------------------

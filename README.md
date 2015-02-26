@@ -88,9 +88,7 @@ The intra-group algorithm addresses all of these possible occurrences (previousl
 * Hidden Quadruples
 
 
-In the case of harder puzzles, inter-group algorithms are needed to continue simplifying the problem space.
-
-Inter-Group Algorithms to be encoded:
+In the case of harder puzzles, inter-group algorithms are needed to continue simplifying the problem space:
 * Locked Candidates
 * X-Wing
 * XY-Wing
