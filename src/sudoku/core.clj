@@ -1,9 +1,12 @@
-(ns sudoku.core)
-
+(ns sudoku.core
+  (:require
+   [clojure.string :as str]
+   [clojure.set :refer [union difference intersection]]))
 
 ;-------------------------------------------------------------------------------
 ; utility
 
+;generate all possible combinations of (range 0 n) of size x
 (defn generate-combinations [n x]
   (defn f [prefix es x]
     (loop [es es acc []]
@@ -15,6 +18,14 @@
           (recur es acc))
         acc)))
   (f [] (range 0 n) x))
+
+;partition 2 sets into their differences and their union
+(defn partition-sets
+  ([pair] (let [[set1 set2] pair] (partition-sets set1 set2)))
+  ([set1 set2]
+    [(difference set1 set2)
+     (intersection set1 set2)
+     (difference set2 set1)]))
 
 ;-------------------------------------------------------------------------------
 ; initialization
@@ -109,16 +120,27 @@
       cells)))
 
 ;-------------------------------------------------------------------------------
+; group functions
+
+(defn cell-index-to-groups [i]
+  (let [hor (quot i 9)
+        ver (mod i 9)
+        sqr (+ (* 3 (quot hor 3)) (quot ver 3))]
+    {:hor hor :ver ver :sqr sqr}))
+
+(defn other-group-types [group-type]
+  (filter
+   (fn [gt] (not= group-type gt))
+   (keys (:groups data))))
+
+;-------------------------------------------------------------------------------
 ; grid functions
 
 (defn assign-grid-value [grid pos val]
   (assoc grid pos #{val}))
 
 (defn get-group-cells [grid group]
-  (loop [keys (:positions group) acc []]
-    (if-let [[key & keys] (seq keys)]
-      (recur keys (conj acc (grid key)))
-      acc)))
+  (map grid (:positions group)))
 
 ;-------------------------------------------------------------------------------
 ; intra-group simplifying
@@ -126,7 +148,7 @@
 (defn find-matching-set [cells x]
   (loop [combos (generate-combinations (count cells) x)]
     (if-let [[keys & combos] (seq combos)]
-      (let [vals (reduce clojure.set/union #{} (map (fn [i] (cells i)) keys))]
+      (let [vals (reduce union #{} (map (fn [i] (cells i)) keys))]
         (if (= (count vals) x)
           [keys vals]
           (recur combos)))
@@ -141,7 +163,7 @@
                         rems))))
 
 (defn process-group [cells remaining-positions]
-  (loop [cells cells rems remaining-positions x 1 acc []]
+  (loop [cells (vec cells) rems remaining-positions x 1 acc []]
     (if (>= x (count rems)) acc
         (let [cs (map (fn [i] (cells i)) rems)]
           (if-let [[keys vals] (find-matching-set (vec cs) x)]
@@ -182,13 +204,6 @@
              [sqr (set (:positions ((:hor groups) (+ j (* 3 (quot i 3))))))]]
             )))))))
 
-(defn partition-sets
-  ([pair] (let [[set1 set2] pair] (partition-sets set1 set2)))
-  ([set1 set2]
-    [(clojure.set/difference set1 set2)
-     (clojure.set/intersection set1 set2)
-     (clojure.set/difference set2 set1)]))
-
 (defn create-unsolved-cell-map [grid positions]
   (loop [xs positions acc {}]
     (if-let [[x & xs] (seq xs)]
@@ -207,7 +222,7 @@
 
 (defn generate-locked-updates [m1 m2 m3]
   (let [[vals1 vals2 vals3]
-        (map (fn [m] (reduce clojure.set/union (vals m))) [m1 m2 m3])]
+        (map (fn [m] (reduce union (vals m))) [m1 m2 m3])]
     (loop [vals vals2 acc []]
       (if-let [[val & vals] (seq vals)]
         (let [updates1 (locked-updates-step val vals3 m1)
@@ -228,12 +243,92 @@
         [data false]))))
 
 ;-------------------------------------------------------------------------------
+; x-wing
+
+;invert a grid key to values map to a value to keys map with optional size filter
+(defn group-to-value-map
+  ([grid size group]
+   (let [m (group-to-value-map grid group)]
+     (select-keys m (keys (filter (fn [[k v]] (= (count v) size)) m)))))
+  ([grid group]
+    (apply merge-with concat
+           (map
+            (fn [[key vals]] (reduce (fn [m val] (assoc m val [key])) {} vals))
+            (select-keys grid (:positions group))))))
+
+(defn x-wing-test [data group-type val i1 i2 j1 j2]
+  (let [gmi1 (cell-index-to-groups i1)
+        gmi2 (cell-index-to-groups i2)
+        gmj1 (cell-index-to-groups j1)
+        gmj2 (cell-index-to-groups j2)]
+    (loop [group-types (other-group-types group-type)]
+      (if-let [[other-group-type & group-types] (seq group-types)]
+        (let [group-index-i (get gmi1 other-group-type)
+              group-index-j (get gmj1 other-group-type)
+              updates
+              (if (and (= group-index-i (get gmi2 other-group-type))
+                       (= group-index-j (get gmj2 other-group-type))
+                       (not= group-index-i group-index-j))
+                (let [groups (get (:groups data) other-group-type)
+                      keys-i (set (:positions (get groups group-index-i)))
+                      keys-j (set (:positions (get groups group-index-j)))
+                      keys (difference (union keys-i keys-j) #{i1 i2 j1 j2})]
+                  (do
+                    (defn f [i]
+                      (let [cell (get (:grid data) i)]
+                        (if (contains? cell val) [[i val]] [])))
+                    (reduce concat (map f keys))))
+                [])]
+          (if (> (count updates) 0) updates
+              (recur group-types)))
+        []))))
+
+(defn x-wing-compare [data group-type m1 m2 keys]
+  (loop [keys keys]
+    (if-let [[key & keys] (seq keys)]
+      (let [as (vec (get m1 key))
+            a1 (as 0) a2 (as 1)
+            bs (vec (get m2 key))
+            b1 (bs 0) b2 (bs 1)
+            updates (concat
+                     (x-wing-test data group-type key a1 b1 a2 b2)
+                     (x-wing-test data group-type key a1 b2 a2 b1))]
+        (if (> (count updates) 0) updates
+            (recur keys)))
+      [])))
+
+(defn x-wing-process-group-type [data group-type]
+  (let [grid (:grid data)
+        groups (get (:groups data) group-type)
+        maps (vec (map (partial group-to-value-map grid 2) groups))]
+    (loop [combos (generate-combinations 9 2)]
+      (if-let [[[k1 k2] & combos] (seq combos)]
+        (let [m1 (maps k1) m2 (maps k2)
+              keys (intersection (set (keys m1)) (set (keys m2)))
+              updates (x-wing-compare data group-type m1 m2 keys)]
+          (if (> (count updates) 0) updates (recur combos)))
+        []))))
+
+(defn x-wing [data]
+  (let [grid (:grid data)]
+    (loop [group-types [:hor :ver :sqr]]
+      (if-let [[group-type & group-types] (seq group-types)]
+        (let [updates (x-wing-process-group-type data group-type)]
+          (if (> (count updates) 0)
+            (do
+              ;(println updates)
+              [(assoc data :grid (remove-cells-values grid updates)) true])
+            (recur group-types)))
+        [data false]))))
+
+;-------------------------------------------------------------------------------
 ; algorithms
 
 (def algorithms
   [
    [simplify-groups "Simplify Groups"]
    [locked-candidates "Locked Candidates"]
+   [x-wing "X-Wing"]
    ])
 
 (defn run-algs [data counter]
