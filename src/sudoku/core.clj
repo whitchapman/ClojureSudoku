@@ -1,9 +1,8 @@
 (ns sudoku.core
-  (:require
-   [clojure.string :as str]
-   [clojure.set :as set]))
+  (:require [clojure.string :as str]
+            [clojure.set :as set]))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;utility
 
 ;;generate all possible combinations of (range 0 n) of size x
@@ -19,66 +18,59 @@
         acc)))
   (f [] (range 0 n) x))
 
-;;partition 2 sets into their differences and their union
+;;partition 2 sets into their differences and their intersection
 (defn partition-sets [[set1 set2]]
   [(set/difference set1 set2)
    (set/intersection set1 set2)
    (set/difference set2 set1)])
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;initialization
-
-(def cell
-  (sorted-set 1 2 3 4 5 6 7 8 9))
 
 (def starting-positions
   (sorted-set 0 1 2 3 4 5 6 7 8))
 
-(def grid
-  (vec (repeat 81 cell)))
-
 (defn create-group [xs]
-  {:positions xs
+  {:positions (vec xs)
    ;;:unsolved (sorted-set 0 1 2 3 4 5 6 7 8)
    })
 
 (defn create-horz-group [x]
-  (let [i (* x 9)
-        xs (vec (range i (+ i 9)))]
-    (create-group xs)))
+  (let [i (* x 9)]
+    (->> (range 0 9)
+         (map #(+ i %))
+         (create-group))))
 
 (defn create-vert-group [x]
-  (let [xs (vec (for [i (range 0 9)] (+ (* i 9)  x)))]
-    (create-group xs)))
+  (->> (range 0 9)
+       (map #(+ x (* 9 %)))
+       (create-group)))
 
 (defn create-groups [f]
-  (vec (for [i (range 0 9)] (f i))))
+  (->> (range 0 9)
+       (map f)
+       (vec)))
 
-(def horz-groups (create-groups create-horz-group))
-(def vert-groups (create-groups create-vert-group))
-
-(def square-groups
-  [(create-group [0 1 2 9 10 11 18 19 20])
-   (create-group [3 4 5 12 13 14 21 22 23])
-   (create-group [6 7 8 15 16 17 24 25 26])
-   (create-group [27 28 29 36 37 38 45 46 47])
-   (create-group [30 31 32 39 40 41 48 49 50])
-   (create-group [33 34 35 42 43 44 51 52 53])
-   (create-group [54 55 56 63 64 65 72 73 74])
-   (create-group [57 58 59 66 67 68 75 76 77])
-   (create-group [60 61 62 69 70 71 78 79 80])])
-
-(def data
-  {:grid grid
-   :groups {:ver vert-groups
-            :hor horz-groups
-            :sqr square-groups}})
+(defn initialize-data []
+  (let [cell (sorted-set 1 2 3 4 5 6 7 8 9)]
+    {:grid (vec (repeat 81 cell))
+     :groups {:ver (create-groups create-vert-group)
+              :hor (create-groups create-horz-group)
+              :sqr [(create-group [0 1 2 9 10 11 18 19 20])
+                    (create-group [3 4 5 12 13 14 21 22 23])
+                    (create-group [6 7 8 15 16 17 24 25 26])
+                    (create-group [27 28 29 36 37 38 45 46 47])
+                    (create-group [30 31 32 39 40 41 48 49 50])
+                    (create-group [33 34 35 42 43 44 51 52 53])
+                    (create-group [54 55 56 63 64 65 72 73 74])
+                    (create-group [57 58 59 66 67 68 75 76 77])
+                    (create-group [60 61 62 69 70 71 78 79 80])]}}))
 
 (defn get-all-groups [data]
   (let [groups (:groups data)]
     (concat (:ver groups) (:hor groups) (:sqr groups))))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;cell functions
 
 (defn cell-empty? [c]
@@ -96,11 +88,11 @@
 (defn remove-cell-value [c val]
   (disj c val))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;cells functions
 
 (defn remove-cells-value [cells pos val]
-  (assoc cells pos (remove-cell-value (cells pos) val)))
+  (assoc cells pos (remove-cell-value (get cells pos) val)))
 
 (defn remove-cells-values [cells requests]
   (loop [cells cells rs requests]
@@ -108,7 +100,7 @@
       (recur (remove-cells-value cells pos val) rs)
       cells)))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;group functions
 
 (defn cell-index-to-groups [i]
@@ -117,12 +109,12 @@
         sqr (+ (* 3 (quot hor 3)) (quot ver 3))]
     {:hor hor :ver ver :sqr sqr}))
 
-(defn other-group-types [group-type]
+(defn other-group-types [data group-type]
   (filter
    (fn [gt] (not= group-type gt))
    (keys (:groups data))))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;grid functions
 
 (defn assign-grid-value [grid pos val]
@@ -131,19 +123,19 @@
 (defn get-group-cells [grid group]
   (map grid (:positions group)))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;intra-group simplifying
 
 (defn find-matching-set [cells x]
   (loop [combos (generate-combinations (count cells) x)]
     (when-let [[keys & combos] (seq combos)]
-      (let [vals (reduce set/union #{} (map (fn [i] (cells i)) keys))]
+      (let [vals (reduce set/union #{} (map (fn [i] (get cells i)) keys))]
         (if (= (count vals) x)
           [keys vals]
           (recur combos))))))
 
 (defn find-values-to-remove [cells rems vals]
-  (let [contains-val? (fn [i val] (contains? (cells i) val))]
+  (let [contains-val? (fn [i val] (contains? (get cells i) val))]
     (reduce concat (map (fn [i]
                           (map
                            (fn [val] [i val])
@@ -153,7 +145,7 @@
 (defn process-group [cells remaining-positions]
   (loop [cells (vec cells) rems remaining-positions x 1 acc []]
     (if (>= x (count rems)) acc
-        (let [cs (map (fn [i] (cells i)) rems)]
+        (let [cs (map (fn [i] (get cells i)) rems)]
           (if-let [[keys vals] (find-matching-set (vec cs) x)]
             (let [vrems (vec rems)
                   rems (reduce disj rems (map (fn [k] (vrems k)) keys))
@@ -176,7 +168,7 @@
         (recur grid groups (or group-changed? changed?)))
       [(assoc data :grid grid) changed?])))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;locked candidates
 
 (defn get-locked-group-pairs [data]
@@ -228,7 +220,7 @@
             (recur pairs )))
         [data false]))))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;x-wing
 
 ;;invert a grid key to values map to a value to keys map with optional size filter
@@ -247,7 +239,7 @@
         gmi2 (cell-index-to-groups i2)
         gmj1 (cell-index-to-groups j1)
         gmj2 (cell-index-to-groups j2)]
-    (loop [group-types (other-group-types group-type)]
+    (loop [group-types (other-group-types data group-type)]
       (if-let [[other-group-type & group-types] (seq group-types)]
         (let [group-index-i (get gmi1 other-group-type)
               group-index-j (get gmj1 other-group-type)
@@ -307,7 +299,7 @@
             (recur group-types)))
         [data false]))))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;algorithms
 
 (def algorithms
@@ -346,7 +338,7 @@
           (recur data (inc counter)))
         data))))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;solution functions
 
 (defn assign-value [data x y val]
@@ -362,20 +354,20 @@
       d)))
 
 (defn solve-puzzle [puzzle & {:keys [max-iterations] :or {max-iterations 100}}]
-  (solve-data max-iterations (assign-values data puzzle)))
+  (let [data (initialize-data)]
+    (solve-data max-iterations (assign-values data puzzle))))
 
 (defn fake-solve-zero-fill [data]
   (let [grid (loop [cells (:grid data) counter 0]
                (if (< counter 81)
-                 (let [cells
-                       (if (cell-solved? (cells counter))
-                         cells
-                         (assign-grid-value cells counter 0))]
+                 (let [cells (if (cell-solved? (get cells counter))
+                               cells
+                               (assign-grid-value cells counter 0))]
                    (recur cells (inc counter)))
                  cells))]
     (assoc data :grid grid)))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;print functions
 
 (defn grid-to-string [wrap-grid wrap-row wrap-done wrap-cell wrap-empty g]
@@ -409,7 +401,7 @@
 (defn write-html [file-path data]
   (write-string file-path (grid-to-html (:grid data))))
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
 ;;puzzles
 
 (def puzzle1
@@ -819,4 +811,4 @@
    [9 3 8]
    [9 7 3]])
 
-;;------------------------------------------------------------------------------
+;;------------------------------------------------------------------------
