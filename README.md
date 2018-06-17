@@ -1,26 +1,23 @@
-# sudoku
+# clojure-sudoku-solver
 
 A Clojure library designed to solve sudoku puzzles.
 
 
-## Setup in Emacs
+## Setup
 
-I use Emacs Live with the following steps to prepare this project for hacking in the REPL:
-
-1. M-x cider-jack-in
-2. C-x o (switch to non-REPL buffer)
-3. C-x C-f src/sudoku/core.clj (open code file)
-4. C-c C-k (compile src)
-5. C-c M-n (change REPL namespace to sudoku.core)
-6. switch to REPL buffer and start hacking...
-
+Start a REPL, compile `sudoku.core`, and then switch to that namespace:
+```clojure
+> (ns sudoku.core)
+```
 
 ## Usage
 
-In this namespace, "data" is a blank sudoku data structure. To see a visual represenation of this data structure, write html to a file, per code below, and then open the resultant file in any browser:
+To see a visual representation of a blank sudoku data structure, take the initialized data structure and write html to a file, per code below, and then open the generated file in any browser:
 
 ```clojure
-(write-data "/absolute/path/works/best/data.html" data)
+> (write-html "/absolute/path/works/best/data.html" data)
+
+$ open data.html
 ```
 
 The image at this link shows that every cell can have the possible values [1-9]:
@@ -35,8 +32,8 @@ Given this puzzle: [Puzzle #1](images/puzzle1/puzzle1.png)
 Load the encoded puzzle1 into a data structure, and then write html to a file to view in a browser:
 
 ```clojure
-(def data2 (assign-values data puzzle1))
-(write-data "/absolute/path/works/best/data.html" data2)
+> (def data2 (assign-values data puzzle1))
+> (write-html "/absolute/path/works/best/data.html" data2)
 ```
 
 [Loaded Puzzle Data Structure](images/puzzle1/data2.png)
@@ -49,8 +46,8 @@ This next step simplifies the puzzle by iterating over all groups and applying t
 The first iteration:
 
 ```clojure
-(def data3 (solve-puzzle puzzle1 1))
-(write-data "/absolute/path/works/best/data.html" data3)
+> (def data3 (solve-puzzle puzzle1 :max-iterations 1))
+> (write-html "/absolute/path/works/best/data.html" data3)
 ```
 
 [Simplified Puzzle Data Structure (1 Iteration)](images/simplify/data1.png)
@@ -61,8 +58,8 @@ An iteration of the algorithm attempts to simplify each group in turn by creatin
 The second iteration:
 
 ```clojure
-(def data4 (solve-puzzle puzzle1 2))
-(write-data "/absolute/path/works/best/data.html" data4)
+> (def data4 (solve-puzzle puzzle1 :max-iterations 2))
+> (write-html "/absolute/path/works/best/data.html" data4)
 ```
 
 [Simplified Puzzle Data Structure (2 Iterations)](images/simplify/data2.png)
@@ -71,9 +68,9 @@ The second iteration:
 After the 3rd iteration, the puzzle is solved:
 
 ```clojure
-(def data5 (solve-puzzle puzzle1))
-(write-data "/absolute/path/works/best/data.html" data5)
-(data-is-solved data5)
+> (def data5 (solve-puzzle puzzle1))
+> (write-html "/absolute/path/works/best/data.html" data5)
+> (data-is-solved data5)
 ```
 
 [Solved Puzzle](images/simplify/data3.png)
@@ -93,8 +90,8 @@ The intra-group algorithm addresses all of these possible occurrences (previousl
 In the case of harder puzzles, inter-group algorithms are needed to continue simplifying the problem space:
 * Locked Candidates
 * X-Wing
-* XY-Wing
-* Swordfish
+* XY-Wing (TODO)
+* Swordfish (TODO)
 
 
 ## License
@@ -102,4 +99,4 @@ In the case of harder puzzles, inter-group algorithms are needed to continue sim
 This project is a POC demonstrating what can be done with Clojure.
 Please contact me if you have any comments or suggestions.
 
-Copyright © 2015 Whit Chapman
+Copyright © 2018 Whit Chapman
