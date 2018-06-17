@@ -15,9 +15,10 @@ Start a REPL, compile `sudoku.core`, and then switch to that namespace:
 To see a visual representation of a blank sudoku data structure, initialize the data structure and write html to a file, per code below, and then open the generated file in any browser:
 
 ```clojure
-> (def data (initialize-data))
+> (def data (data/initialize-data))
 > (write-html "/absolute/path/works/best/data.html" data)
 
+$ cd /absolute/path/works/best
 $ open data.html
 ```
 
@@ -33,7 +34,7 @@ Given this puzzle: [Puzzle #1](images/puzzle1/puzzle1.png)
 Load the encoded puzzle1 into a data structure, and then write html to a file to view in a browser:
 
 ```clojure
-> (def data2 (assign-values data puzzle1))
+> (def data2 (assign-values data puzzles/puzzle1))
 > (write-html "/absolute/path/works/best/data.html" data2)
 ```
 
@@ -47,7 +48,7 @@ This next step simplifies the puzzle by iterating over all groups and applying t
 The first iteration:
 
 ```clojure
-> (def data3 (solve-puzzle puzzle1 :max-iterations 1))
+> (def data3 (solve-puzzle puzzles/puzzle1 :max-iterations 1))
 > (write-html "/absolute/path/works/best/data.html" data3)
 ```
 
@@ -59,7 +60,7 @@ An iteration of the algorithm attempts to simplify each group in turn by creatin
 The second iteration:
 
 ```clojure
-> (def data4 (solve-puzzle puzzle1 :max-iterations 2))
+> (def data4 (solve-puzzle puzzles/puzzle1 :max-iterations 2))
 > (write-html "/absolute/path/works/best/data.html" data4)
 ```
 
@@ -69,7 +70,7 @@ The second iteration:
 After the 3rd iteration, the puzzle is solved:
 
 ```clojure
-> (def data5 (solve-puzzle puzzle1))
+> (def data5 (solve-puzzle puzzles/puzzle1))
 > (write-html "/absolute/path/works/best/data.html" data5)
 > (data-is-solved data5)
 ```
