@@ -1,7 +1,60 @@
 (ns sudoku.data)
 
 ;;------------------------------------------------------------------------
-;;initialization
+;;cell functions
+
+(defn cell-empty? [c]
+  (= (count c) 0))
+
+(defn cell-solved? [c]
+  (= (count c) 1))
+
+(defn cell-contents-to-string [c]
+  (if (cell-empty? c) "0"
+      (if (cell-solved? c)
+        (reduce str c)
+        (str "[" (reduce str c) "]"))))
+
+(defn remove-cell-value [c val]
+  (disj c val))
+
+;;------------------------------------------------------------------------
+;;cells functions
+
+(defn remove-cells-value [cells pos val]
+  (assoc cells pos (remove-cell-value (get cells pos) val)))
+
+(defn remove-cells-values [cells requests]
+  (loop [cells cells rs requests]
+    (if-let [[[pos val] & rs] (seq rs)]
+      (recur (remove-cells-value cells pos val) rs)
+      cells)))
+
+;;------------------------------------------------------------------------
+;;group functions
+
+(defn cell-index-to-groups [i]
+  (let [hor (quot i 9)
+        ver (mod i 9)
+        sqr (+ (* 3 (quot hor 3)) (quot ver 3))]
+    {:hor hor :ver ver :sqr sqr}))
+
+(defn other-group-types [data group-type]
+  (filter
+   (fn [gt] (not= group-type gt))
+   (keys (:groups data))))
+
+;;------------------------------------------------------------------------
+;;grid functions
+
+(defn assign-grid-value [grid pos val]
+  (assoc grid pos #{val}))
+
+(defn get-group-cells [grid group]
+  (map grid (:positions group)))
+
+;;------------------------------------------------------------------------
+;;intialization
 
 (defn create-group [xs]
   {:positions (vec xs)
@@ -44,3 +97,12 @@
 (defn get-all-groups [data]
   (let [groups (:groups data)]
     (concat (:ver groups) (:hor groups) (:sqr groups))))
+
+(defn data-solved? [data]
+  (loop [cells (:grid data)]
+    (if (seq cells)
+      (let [cell (first cells)]
+        (if (cell-solved? cell)
+          (recur (next cells))
+          false))
+      true)))
