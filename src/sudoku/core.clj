@@ -233,69 +233,23 @@
       (if-let [[group-type & group-types] (seq group-types)]
         (let [updates (x-wing-process-group-type data group-type)]
           (if (> (count updates) 0)
-            (do
-              ;;(println updates)
-              [(assoc data :grid (remove-cells-values grid updates)) true])
+            [(assoc data :grid (remove-cells-values grid updates)) true]
             (recur group-types)))
         [data false]))))
 
 ;;------------------------------------------------------------------------
-;;algorithms
+;;assignment
 
-(def algorithms
-  [[simplify-groups :simplify-groups]
-   [locked-candidates :locked-candidates]
-   [x-wing :x-wing]])
-
-(defn run-algs [data counter]
-  (loop [data data algcount 1]
-    (let [algorithm (get algorithms (dec algcount))
-          alg (algorithm 0)
-          [data changed?] (alg data)]
-      (println (str "Run #" counter " Alg #" algcount " ("
-                    (algorithm 1) ") changed=" changed?))
-      (if (and (= changed? false) (< algcount (count algorithms)))
-        (recur data (inc algcount))
-        [data changed?]))))
-
-(defn data-solved? [data]
-  (loop [cells (:grid data)]
-    (if (seq cells)
-      (let [cell (first cells)]
-        (if (cell-solved? cell)
-          (recur (next cells))
-          false))
-      true)))
-
-(defn solve-data [max-num-runs data]
-  (loop [data data counter 1]
-    (let [[data changed?] (run-algs data counter)]
-      (if (and (< counter max-num-runs) (= changed? true))
-        (if (data-solved? data)
-          (do
-            (println "Solved!")
-            data)
-          (recur data (inc counter)))
-        data))))
-
-;;------------------------------------------------------------------------
-;;solution functions
-
-(defn assign-value [data x y val]
+(defn- assign-value [data [x y val]]
   (let [pos (+ (* (- x 1) 9) (- y 1))]
     (assoc data :grid (assign-grid-value (:grid data) pos val))))
 
-(defn assign-values [data vals]
-  (loop [d data vs vals]
-    (if (seq vs)
-      (let [[x y val] (first vs)
-            d (assign-value d x y val)]
-       (recur d (next vs)))
-      d)))
-
-(defn solve-puzzle [puzzle & {:keys [max-iterations] :or {max-iterations 100}}]
-  (let [data (data/initialize-data)]
-    (solve-data max-iterations (assign-values data puzzle))))
+(defn assign-values [data vs]
+  (loop [data data vs vs]
+    (if-let [[v & vs] (seq vs)]
+      (let [data (assign-value data v)]
+        (recur data vs))
+      data)))
 
 (defn fake-solve-zero-fill [data]
   (let [grid (loop [cells (:grid data) counter 0]
@@ -308,7 +262,52 @@
     (assoc data :grid grid)))
 
 ;;------------------------------------------------------------------------
-;;print functions
+;;solution functions
+
+(def algorithms
+  [[:simplify-groups simplify-groups]
+   [:locked-candidates locked-candidates]
+   [:x-wing x-wing]])
+
+(defn run-iteration [data & {:keys [algs] :or {algs algorithms}}]
+  (loop [j 1 algs algs data data]
+    (if-let [[[alg-key alg-fn] & algs] (seq algs)]
+      (let [[data changed?] (alg-fn data)]
+        ;;(println (str "  Alg #" j " (" alg-key ") changed=" changed?))
+        (if changed?
+          [(update data :iterations conj alg-key) true]
+          (recur (inc j) algs data)))
+      [data false])))
+
+(defn data-solved? [data]
+  (loop [cells (:grid data)]
+    (if (seq cells)
+      (let [cell (first cells)]
+        (if (cell-solved? cell)
+          (recur (next cells))
+          false))
+      true)))
+
+(defn solve-puzzle [puzzle & {:keys [max-iterations] :or {max-iterations 100}}]
+  ;;(println "")
+  (let [data (assign-values (data/initialize) puzzle)]
+    (loop [i 1 data data]
+      ;;(println (str "Iteration #" i ":"))
+      (let [[data changed?] (run-iteration data)]
+        (if (and changed? (< i max-iterations))
+          (if (data-solved? data)
+            (assoc data :solved? true)
+            (recur (inc i) data))
+          data)))))
+
+;;------------------------------------------------------------------------
+;;output functions
+
+(defn print-state [data]
+  (let [num-iterations (count (:iterations data))]
+    (if (:solved? data)
+      (println "Puzzle SOLVED in" num-iterations "iteration(s):" (:iterations data))
+      (println "Puzzle NOT solved with" num-iterations "attempt(s)."))))
 
 (defn grid-to-string [wrap-grid wrap-row wrap-done wrap-cell wrap-empty g]
   (wrap-grid

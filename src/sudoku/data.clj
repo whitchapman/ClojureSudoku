@@ -24,7 +24,7 @@
        (map f)
        (vec)))
 
-(defn initialize-data []
+(defn initialize []
   (let [cell (sorted-set 1 2 3 4 5 6 7 8 9)]
     {:grid (vec (repeat 81 cell))
      :groups {:ver (create-groups create-vert-group)
@@ -37,7 +37,9 @@
                     (create-group [33 34 35 42 43 44 51 52 53])
                     (create-group [54 55 56 63 64 65 72 73 74])
                     (create-group [57 58 59 66 67 68 75 76 77])
-                    (create-group [60 61 62 69 70 71 78 79 80])]}}))
+                    (create-group [60 61 62 69 70 71 78 79 80])]}
+     :iterations []
+     :solved? false}))
 
 (defn get-all-groups [data]
   (let [groups (:groups data)]

@@ -15,7 +15,7 @@ Start a REPL, compile `sudoku.core`, and then switch to that namespace:
 To see a visual representation of a blank sudoku data structure, initialize the data structure and write html to a file, per code below, and then open the generated file in any browser:
 
 ```clojure
-> (def data (data/initialize-data))
+> (def data (data/initialize))
 > (write-html "/absolute/path/works/best/data.html" data)
 
 $ cd /absolute/path/works/best

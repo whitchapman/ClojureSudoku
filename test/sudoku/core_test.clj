@@ -1,53 +1,110 @@
 (ns sudoku.core-test
   (:require [clojure.test :refer :all]
             [sudoku.core :refer :all]
-            [sudoku.puzzles :as puzzles]))
+            [sudoku.data :as data]
+            [sudoku.puzzles :as puzzles]
+            [sudoku.util :as util]))
 
-(deftest test-puzzles
+(deftest test-puzzle1
+  (let [data (data/initialize)]
+    (is (= 0 (count (:iterations data))))
+    (is (= false (:solved? data)))
+
+    (let [data (assign-values data puzzles/puzzle1)]
+      (is (= 0 (count (:iterations data))))
+      (is (= false (:solved? data)))
+
+      (let [[data changed?] (run-iteration data)]
+        (is (= 1 (count (:iterations data))))
+        (is (= true changed?))
+        (is (= false (data-solved? data)))
+
+        (let [[data changed?] (run-iteration data)]
+          (is (= 2 (count (:iterations data))))
+          (is (= true changed?))
+          (is (= false (data-solved? data)))
+
+          (let [[data changed?] (run-iteration data)]
+            (is (= 3 (count (:iterations data))))
+            (is (= true changed?))
+            (is (= true (data-solved? data)))
+
+            (let [[data changed?] (run-iteration data)]
+              (is (= 3 (count (:iterations data))))
+              (is (= false changed?))))))))
+
   (let [data (solve-puzzle puzzles/puzzle1 :max-iterations 1)]
-    (is (= false (data-solved? data))))
+    (is (= false (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle1 :max-iterations 2)]
-    (is (= false (data-solved? data))))
+    (is (= false (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle1)]
-    (is (= true (data-solved? data))))
+    (is (= 3 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data)))))
+
+(deftest test-puzzles
 
   (let [data (solve-puzzle puzzles/puzzle2)]
-    (is (= true (data-solved? data))))
+    (is (= 7 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle3)]
-    (is (= true (data-solved? data))))
+    (is (= 5 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle4)]
-    (is (= true (data-solved? data))))
+    (is (= 5 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle5)]
-    (is (= true (data-solved? data))))
+    (is (= 9 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle6)]
-    (is (= true (data-solved? data))))
+    (is (= 6 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle7)]
-    (is (= true (data-solved? data))))
+    (is (= 6 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle8)]
-    (is (= true (data-solved? data))))
+    (is (= 6 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle9)]
-    (is (= true (data-solved? data))))
+    (is (= 9 (count (:iterations data))))
+    (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle10)]
-    (is (= true (data-solved? data))))
+    (is (= 8 (count (:iterations data))))
+    (is (= #{:simplify-groups :locked-candidates :x-wing} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
 
   (let [data (solve-puzzle puzzles/puzzle11)]
-    (is (= false (data-solved? data))))
+    (is (= 7 (count (:iterations data))))
+    (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
+    (is (= false (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle12)]
-    (is (= false (data-solved? data))))
+    (is (= 7 (count (:iterations data))))
+    (is (= #{:simplify-groups} (set (:iterations data))))
+    (is (= false (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle13)]
-    (is (= false (data-solved? data))))
+    (is (= 5 (count (:iterations data))))
+    (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
+    (is (= false (:solved? data))))
 
   )
