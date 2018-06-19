@@ -7,7 +7,7 @@
 
 (deftest test-combinations
 
-  (is (= [[0]] (util/generate-combinations 1 1)))
+  (is (= [[0]] (util/generate-range-combinations 1 1)))
 
   (is (= [[0 1]
           [0 2]
@@ -15,7 +15,7 @@
           [1 2]
           [1 3]
           [2 3]]
-         (util/generate-combinations 4 2)))
+         (util/generate-range-combinations 4 2)))
 
   (is (= [[0 1 2]
           [0 1 3]
@@ -27,9 +27,9 @@
           [1 2 4]
           [1 3 4]
           [2 3 4]]
-         (util/generate-combinations 5 3)))
+         (util/generate-range-combinations 5 3)))
 
-  (is (= [[0 1 2 3]] (util/generate-combinations 4 4))))
+  (is (= [[0 1 2 3]] (util/generate-range-combinations 4 4))))
 
 (deftest test-puzzle1
   (let [data (data/initialize)]

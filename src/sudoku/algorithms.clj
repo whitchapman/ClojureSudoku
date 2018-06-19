@@ -7,7 +7,7 @@
 ;;intra-group simplifying
 
 (defn- find-matching-set [cells x]
-  (loop [combos (util/generate-combinations (count cells) x)]
+  (loop [combos (util/generate-range-combinations (count cells) x)]
     (when-let [[keys & combos] (seq combos)]
       (let [vals (reduce set/union #{} (map (fn [i] (get cells i)) keys))]
         (if (= (count vals) x)
@@ -164,7 +164,7 @@
   (let [grid (:grid data)
         groups (get (:groups data) group-type)
         maps (vec (map (partial group-to-value-map grid 2) groups))]
-    (loop [combos (util/generate-combinations 9 2)]
+    (loop [combos (util/generate-range-combinations 9 2)]
       (if-let [[[k1 k2] & combos] (seq combos)]
         (let [m1 (maps k1) m2 (maps k2)
               keys (set/intersection (set (keys m1)) (set (keys m2)))
