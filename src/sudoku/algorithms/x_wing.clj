@@ -20,17 +20,17 @@
         (apply merge-with concat))))
 
 (defn- x-wing-test [data group-type val i1 i2 j1 j2]
-  (let [gmi1 (data/cell-index-to-groups i1)
-        gmi2 (data/cell-index-to-groups i2)
-        gmj1 (data/cell-index-to-groups j1)
-        gmj2 (data/cell-index-to-groups j2)]
+  (let [gmi1 (data/cell-position-to-group-indexes i1)
+        gmi2 (data/cell-position-to-group-indexes i2)
+        gmj1 (data/cell-position-to-group-indexes j1)
+        gmj2 (data/cell-position-to-group-indexes j2)]
     (loop [group-types (disj #{:hor :ver :sqr} group-type)]
       (when-let [[other-group-type & group-types] (seq group-types)]
         (let [group-index-i (get gmi1 other-group-type)
               group-index-j (get gmj1 other-group-type)
               updates (when (and (= group-index-i (get gmi2 other-group-type))
-                               (= group-index-j (get gmj2 other-group-type))
-                               (not= group-index-i group-index-j))
+                                 (= group-index-j (get gmj2 other-group-type))
+                                 (not= group-index-i group-index-j))
                         (let [groups (get (:groups data) other-group-type)
                               keys-i (set (:positions (get groups group-index-i)))
                               keys-j (set (:positions (get groups group-index-j)))
