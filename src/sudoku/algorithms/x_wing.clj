@@ -72,11 +72,10 @@
 (defn run-x-wing [data]
   (let [grid (:grid data)]
     (loop [group-types [:hor :ver :sqr]]
-      (if-let [[group-type & group-types] (seq group-types)]
+      (when-let [[group-type & group-types] (seq group-types)]
         (let [updates (x-wing-process-group-type data group-type)]
           (if (> (count updates) 0)
-            [(assoc data :grid (data/remove-values-from-cells grid updates)) true]
-            (recur group-types)))
-        [data false]))))
+            (assoc data :grid (data/remove-values-from-cells grid updates))
+            (recur group-types)))))))
 
 ;;------------------------------------------------------------------------

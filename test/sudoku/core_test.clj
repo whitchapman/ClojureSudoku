@@ -44,24 +44,23 @@
       (is (= 0 (count (:iterations data))))
       (is (= false (:solved? data)))
 
-      (let [[data changed?] (run-iteration data)]
-        (is (= 1 (count (:iterations data))))
-        (is (= true changed?))
-        (is (= false (data/data-solved? data)))
+      (let [data1 (run-iteration data)]
+        (is (not= nil data1))
+        (is (= 1 (count (:iterations data1))))
+        (is (= false (data/data-solved? data1)))
 
-        (let [[data changed?] (run-iteration data)]
-          (is (= 2 (count (:iterations data))))
-          (is (= true changed?))
-          (is (= false (data/data-solved? data)))
+        (let [data2 (run-iteration data1)]
+          (is (not= nil data2))
+          (is (= 2 (count (:iterations data2))))
+          (is (= false (data/data-solved? data2)))
 
-          (let [[data changed?] (run-iteration data)]
-            (is (= 3 (count (:iterations data))))
-            (is (= true changed?))
-            (is (= true (data/data-solved? data)))
+          (let [data3 (run-iteration data2)]
+            (is (not= nil data3))
+            (is (= 3 (count (:iterations data3))))
+            (is (= true (data/data-solved? data3)))
 
-            (let [[data changed?] (run-iteration data)]
-              (is (= 3 (count (:iterations data))))
-              (is (= false changed?))))))))
+            (let [data4 (run-iteration data3)]
+              (is (= nil data4))))))))
 
   (let [data (solve-puzzle puzzles/puzzle1 :max-iterations 1)]
     (is (= false (:solved? data))))

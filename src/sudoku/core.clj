@@ -33,23 +33,22 @@
    [:x-wing alg-x-wing/run-x-wing]])
 
 (defn run-iteration [data & {:keys [algs] :or {algs algorithms}}]
-  (loop [j 1 algs algs data data]
-    (if-let [[[alg-key alg-fn] & algs] (seq algs)]
-      (let [[data changed?] (alg-fn data)]
-        (if changed?
-          [(update data :iterations conj alg-key) true]
-          (recur (inc j) algs data)))
-      [data false])))
+  (loop [algs algs]
+    (when-let [[[alg-key alg-fn] & algs] (seq algs)]
+      (if-let [data (alg-fn data)]
+        (update data :iterations conj alg-key)
+        (recur algs)))))
 
 (defn solve-puzzle [puzzle & {:keys [max-iterations] :or {max-iterations 100}}]
   (let [data (assign-values (data/initialize) puzzle)]
     (loop [i 1 data data]
-      (let [[data changed?] (run-iteration data)]
-        (if (and changed? (< i max-iterations))
-          (if (data/data-solved? data)
-            (assoc data :solved? true)
-            (recur (inc i) data))
-          data)))))
+      (if-let [data (run-iteration data)]
+        (if (data/data-solved? data)
+          (assoc data :solved? true)
+          (if (< i max-iterations)
+            (recur (inc i) data)
+            data))
+        data))))
 
 ;;------------------------------------------------------------------------
 ;;output functions

@@ -44,7 +44,7 @@
 (defn run-locked-candidates [data]
   (let [grid (:grid data)]
     (loop [pairs (get-locked-group-pairs data)]
-      (if-let [[pair & pairs] (seq pairs)]
+      (when-let [[pair & pairs] (seq pairs)]
         (let [[s1 s2] pair
 
               ;;partition 2 sets into their differences and their intersection
@@ -54,9 +54,7 @@
 
               updates (generate-locked-updates m1 m2 m3)]
           (if (> (count updates) 0)
-            [(assoc data :grid (data/remove-values-from-cells grid updates)) true]
-            (recur pairs )))
-
-        [data false]))))
+            (assoc data :grid (data/remove-values-from-cells grid updates))
+            (recur pairs)))))))
 
 ;;------------------------------------------------------------------------
