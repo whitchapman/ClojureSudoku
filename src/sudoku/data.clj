@@ -10,25 +10,20 @@
   (= (count c) 1))
 
 (defn cell-contents-to-string [c]
-  (if (cell-empty? c) "0"
-      (if (cell-solved? c)
-        (reduce str c)
-        (str "[" (reduce str c) "]"))))
-
-(defn remove-cell-value [c val]
-  (disj c val))
+  (if-not (cell-empty? c)
+    (if (cell-solved? c)
+      (reduce str c)
+      (str "[" (reduce str c) "]"))
+    "0"))
 
 ;;------------------------------------------------------------------------
 ;;cells functions
 
-(defn remove-cells-value [cells pos val]
-  (assoc cells pos (remove-cell-value (get cells pos) val)))
-
-(defn remove-cells-values [cells requests]
-  (loop [cells cells rs requests]
-    (if-let [[[pos val] & rs] (seq rs)]
-      (recur (remove-cells-value cells pos val) rs)
-      cells)))
+(defn remove-values-from-cells [cells pos-val-pairs]
+  (reduce (fn [cells [pos val]]
+            (let [updated-cell (disj (get cells pos) val)]
+              (assoc cells pos updated-cell)))
+          cells pos-val-pairs))
 
 ;;------------------------------------------------------------------------
 ;;group functions
@@ -38,11 +33,6 @@
         ver (mod i 9)
         sqr (+ (* 3 (quot hor 3)) (quot ver 3))]
     {:hor hor :ver ver :sqr sqr}))
-
-(defn other-group-types [data group-type]
-  (filter
-   (fn [gt] (not= group-type gt))
-   (keys (:groups data))))
 
 ;;------------------------------------------------------------------------
 ;;grid functions
@@ -58,7 +48,7 @@
 
 (defn create-group [xs]
   {:positions (vec xs)
-   ;;:unsolved (sorted-set 0 1 2 3 4 5 6 7 8)
+   ;;:unsolved (sorted-set 0 1 2 3 4 5 6 7 8) ;;TODO: possible optimization
    })
 
 (defn create-horz-group [x]
@@ -94,15 +84,19 @@
      :iterations []
      :solved? false}))
 
+;;------------------------------------------------------------------------
+;;data functions
+
 (defn get-all-groups [data]
   (let [groups (:groups data)]
     (concat (:ver groups) (:hor groups) (:sqr groups))))
 
 (defn data-solved? [data]
   (loop [cells (:grid data)]
-    (if (seq cells)
-      (let [cell (first cells)]
-        (if (cell-solved? cell)
-          (recur (next cells))
-          false))
+    (if-let [[cell & cells] (seq cells)]
+      (if (cell-solved? cell)
+        (recur cells)
+        false)
       true)))
+
+;;------------------------------------------------------------------------

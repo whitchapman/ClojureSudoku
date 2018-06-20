@@ -31,6 +31,10 @@
 
   (is (= [[0 1 2 3]] (util/generate-range-combinations 4 4))))
 
+(deftest test-zero-fille
+  (let [data (fake-solve-zero-fill (data/initialize))]
+    (is (= (repeat 81 #{0}) (:grid data)))))
+
 (deftest test-puzzle1
   (let [data (data/initialize)]
     (is (= 0 (count (:iterations data))))
@@ -70,54 +74,61 @@
     (is (= #{:simplify-groups} (set (:iterations data))))
     (is (= true (:solved? data)))))
 
-(deftest test-puzzles
-
+(deftest test-puzzle2
   (let [data (solve-puzzle puzzles/puzzle2)]
     (is (= 7 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle3
   (let [data (solve-puzzle puzzles/puzzle3)]
     (is (= 5 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle4
   (let [data (solve-puzzle puzzles/puzzle4)]
     (is (= 5 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle5
   (let [data (solve-puzzle puzzles/puzzle5)]
     (is (= 9 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle6
   (let [data (solve-puzzle puzzles/puzzle6)]
     (is (= 6 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle7
   (let [data (solve-puzzle puzzles/puzzle7)]
     (is (= 6 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle8
   (let [data (solve-puzzle puzzles/puzzle8)]
     (is (= 6 (count (:iterations data))))
     (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle9
   (let [data (solve-puzzle puzzles/puzzle9)]
     (is (= 9 (count (:iterations data))))
     (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
+(deftest test-puzzle10
   (let [data (solve-puzzle puzzles/puzzle10)]
     (is (= 8 (count (:iterations data))))
     (is (= #{:simplify-groups :locked-candidates :x-wing} (set (:iterations data))))
-    (is (= true (:solved? data))))
+    (is (= true (:solved? data)))))
 
-
+(deftest test-puzzles-unsolvable
   (let [data (solve-puzzle puzzles/puzzle11)]
     (is (= 7 (count (:iterations data))))
     (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
@@ -131,6 +142,4 @@
   (let [data (solve-puzzle puzzles/puzzle13)]
     (is (= 5 (count (:iterations data))))
     (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
-    (is (= false (:solved? data))))
-
-  )
+    (is (= false (:solved? data)))))
