@@ -75,7 +75,7 @@
         sqr-group-index (+ (* 3 (quot hor-group-index 3)) (quot ver-group-index 3))]
     {:hor hor-group-index :ver ver-group-index :sqr sqr-group-index}))
 
-(defn get-related-cell-positions [position]
+(defn get-related-positions [position]
   (let [{:keys [hor ver sqr]} (cell-position-to-group-indexes position)]
     (-> (set/union (set (:positions (get (:hor groups) hor)))
                    (set (:positions (get (:ver groups) ver)))

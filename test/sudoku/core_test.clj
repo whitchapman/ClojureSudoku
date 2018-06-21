@@ -32,8 +32,8 @@
   (is (= [[0 1 2 3]] (util/generate-range-combinations 4 4))))
 
 (deftest test-related-positions
-  (is (= #{1 2 3 4 5 6 7 8 9 10 11 18 19 20 27 36 45 54 63 72} (data/get-related-cell-positions 0)))
-  (is (= #{0 2 3 4 5 6 7 8 9 10 11 18 19 20 28 37 46 55 64 73} (data/get-related-cell-positions 1))))
+  (is (= #{1 2 3 4 5 6 7 8 9 10 11 18 19 20 27 36 45 54 63 72} (data/get-related-positions 0)))
+  (is (= #{0 2 3 4 5 6 7 8 9 10 11 18 19 20 28 37 46 55 64 73} (data/get-related-positions 1))))
 
 (deftest test-zero-fille
   (let [data (fake-solve-zero-fill (data/initialize))]
@@ -133,16 +133,16 @@
 
 (deftest test-puzzles-unsolvable
   (let [data (solve-puzzle puzzles/puzzle11)]
-    (is (= 7 (count (:iterations data))))
-    (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
-    (is (= false (:solved? data))))
+    (is (= 8 (count (:iterations data))))
+    (is (= #{:simplify-groups :locked-candidates :backtracking} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle12)]
-    (is (= 7 (count (:iterations data))))
-    (is (= #{:simplify-groups} (set (:iterations data))))
-    (is (= false (:solved? data))))
+    (is (= 8 (count (:iterations data))))
+    (is (= #{:simplify-groups :backtracking} (set (:iterations data))))
+    (is (= true (:solved? data))))
 
   (let [data (solve-puzzle puzzles/puzzle13)]
-    (is (= 5 (count (:iterations data))))
-    (is (= #{:simplify-groups :locked-candidates} (set (:iterations data))))
-    (is (= false (:solved? data)))))
+    (is (= 6 (count (:iterations data))))
+    (is (= #{:simplify-groups :locked-candidates :backtracking} (set (:iterations data))))
+    (is (= true (:solved? data)))))

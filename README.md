@@ -95,6 +95,9 @@ In the case of harder puzzles, inter-group algorithms are needed to continue sim
 * XY-Wing (TODO)
 * Swordfish (TODO)
 
+The final algorithm is a brute force trial-and-error approach:
+* Backtracking
+
 
 ## License
 

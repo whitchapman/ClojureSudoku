@@ -2,6 +2,7 @@
   (:require [sudoku.algorithms.simplify-groups :as alg-simplify-groups]
             [sudoku.algorithms.locked-candidates :as alg-locked-candidates]
             [sudoku.algorithms.x-wing :as alg-x-wing]
+            [sudoku.algorithms.backtracking :as alg-backtracking]
             [sudoku.data :as data]
             [sudoku.puzzles :as puzzles]))
 
@@ -30,14 +31,16 @@
 (def algorithms
   [[:simplify-groups alg-simplify-groups/run-simplify-groups]
    [:locked-candidates alg-locked-candidates/run-locked-candidates]
-   [:x-wing alg-x-wing/run-x-wing]])
+   [:x-wing alg-x-wing/run-x-wing]
+   [:backtracking alg-backtracking/run-backtracking]])
 
 (defn run-iteration [data & {:keys [algs] :or {algs algorithms}}]
-  (loop [algs algs]
-    (when-let [[[alg-key alg-fn] & algs] (seq algs)]
-      (if-let [data (alg-fn data)]
-        (update data :iterations conj alg-key)
-        (recur algs)))))
+  (when-not (data/data-solved? data)
+    (loop [algs algs]
+      (when-let [[[alg-key alg-fn] & algs] (seq algs)]
+        (if-let [data (alg-fn data)]
+          (update data :iterations conj alg-key)
+          (recur algs))))))
 
 (defn solve-puzzle [puzzle & {:keys [max-iterations] :or {max-iterations 100}}]
   (let [data (assign-values (data/initialize) puzzle)]
