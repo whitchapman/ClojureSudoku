@@ -52,6 +52,6 @@
                         [grid (or grid-changed? group-changed?)]))]
     (->> (data/get-all-groups data)
          (reduce reduce-step [(:grid data) false])
-         ((fn [[grid grid-changed?]] [(assoc data :grid grid) grid-changed?])))))
+         ((fn [[grid grid-changed?]] (when grid-changed? (assoc data :grid grid)))))))
 
 ;;------------------------------------------------------------------------
